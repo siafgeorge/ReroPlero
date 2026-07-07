@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,9 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.reroplero.data.*
 
 class LoginPage : ComponentActivity() {
 
@@ -34,7 +39,7 @@ class LoginPage : ComponentActivity() {
         setContent {
             Column (
                 modifier = Modifier.fillMaxSize()
-                    .background(Color(0xFF1E1E2E))
+                    .background(Color(BACKGROUND_COLOR))
                     .padding(43.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -52,10 +57,8 @@ class LoginPage : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
                 ){
-                    UserName()
-                    Password()
+                    LoginFields()
                     Spacer(modifier = Modifier.height(20.dp))
-                    LoginButton()
                 }
 
                 Spacer(modifier = Modifier.weight(2f))
@@ -68,29 +71,43 @@ class LoginPage : ComponentActivity() {
 }
 
 @Composable
-fun UserName() {
-    var text by remember { mutableStateOf("") }
+fun LoginFields() {
+    val context = LocalContext.current
+    val userStore = remember { UserStore(context) }
+
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     TextField(
-        value = text,
-        onValueChange = { text = it },
+        value = username,
+        onValueChange = { username = it },
         label = { Text("Username") }
     )
-}
 
-@Composable
-fun Password() {
-    var text by remember { mutableStateOf("") }
     TextField(
-        value = text,
-        onValueChange = { text = it },
+        value = password,
+        onValueChange = { password = it },
         label = { Text("Password") },
         visualTransformation = PasswordVisualTransformation()
     )
-}
 
-@Composable
-fun LoginButton(){
-    Button(onClick = { /* TODO: Handle login */ }) {
+    Text(
+        text = "Register user",
+        color = Color.White,
+        fontSize = 12.sp,
+        modifier = Modifier.clickable {
+            val ok = userStore.register(username, password)
+            println(if (ok) "registered $username" else "registration failed (blank or exists)")
+        }
+    )
+
+    Button(onClick = { loginAction(username, password) }) {
         Text("Login")
     }
+}
+
+fun loginAction(username: String, password: String){
+    //here the login will be handled
+    println("loginAction called with $username and $password")
+
+
 }
