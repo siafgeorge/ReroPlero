@@ -10,9 +10,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        val intent = Intent(this, LoginPage::class.java)
-        startActivity(intent)
+        startActivity(Intent(this, LoginPage::class.java))
         finish()
 
     }
