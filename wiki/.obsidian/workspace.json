@@ -4,17 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "b0343b52621ecb2b",
+        "id": "3e18014340439a53",
         "type": "tabs",
         "children": [
           {
-            "id": "63ec5a76342a2804",
+            "id": "88232d28a7aa1b44",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "03-data-model.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "03-data-model"
             }
           }
         ]
@@ -176,6 +180,6 @@
       "bases:Create new base": false
     }
   },
-  "active": "63ec5a76342a2804",
+  "active": "88232d28a7aa1b44",
   "lastOpenFiles": []
 }

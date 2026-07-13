@@ -84,7 +84,7 @@ class LoginPage : ComponentActivity() {
 @Composable
 fun LoginFields() {
     val context = LocalContext.current
-    val userStore = remember { UserStore(context) }
+    val userRepository = remember { UserRepositoryImpl(context) }
     val scope = rememberCoroutineScope()
 
     var username by remember { mutableStateOf("") }
@@ -108,21 +108,21 @@ fun LoginFields() {
         fontSize = 12.sp,
         modifier = Modifier.clickable {
             scope.launch {
-                val ok = userStore.register(username, password)
+                val ok = userRepository.register(username, password)
                 println(if (ok) "registered $username" else "registration failed (blank or exists)")
             }
         }
     )
 
-    Button(onClick = { scope.launch { loginAction(context, username, password, userStore) } }) {
+    Button(onClick = { scope.launch { loginAction(context, username, password, userRepository) } }) {
         Text(stringResource(R.string.login_text))
     }
 }
 
-suspend fun loginAction(context: Context, username: String, password: String, userStore: UserStore) {
+suspend fun loginAction(context: Context, username: String, password: String, userRepository: UserRepository) {
     //here the login will be handled
     println("loginAction called with $username and $password")
-    val success = userStore.checkCredentials(username, password)
+    val success = userRepository.checkCredentials(username, password)
     if (success) {
         println("login successful")
         SessionStore(context).setCurrentUser(username)

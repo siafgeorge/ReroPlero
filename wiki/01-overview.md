@@ -12,9 +12,9 @@ stored per-user and can be totalled ("current money").
 |---------|--------|
 | Language | Kotlin |
 | UI | Jetpack Compose, Material 3 |
-| Async | Kotlin coroutines (`suspend` + `Dispatchers.IO`) |
-| Storage | JSON file in app-private storage + `SharedPreferences` |
-| Build | Gradle (Kotlin DSL): `build.gradle.kts`, `app/build.gradle.kts` |
+| Async | Kotlin coroutines (`suspend`; Room does its own threading) |
+| Storage | **Room** (SQLite) `reroplero.db` + `SharedPreferences` for the session |
+| Build | Gradle (Kotlin DSL) + **KSP** (generates Room's code) |
 | Min entry | `LoginPage` activity (declared `LAUNCHER` in the manifest) |
 
 ## Entry point & navigation
@@ -31,6 +31,12 @@ LoginPage  --(login OK: startActivity)-->  MainPage
 
 ## Mental model
 
-Two thin "store" classes wrap all persistence, and the two activities are pure
-UI on top of them. There is no ViewModel layer yet — activities call the stores
-directly inside coroutines. See [02-architecture.md](02-architecture.md).
+The two activities are pure UI on top of a small **repository** layer.
+`UserRepository` is an interface; `UserRepositoryImpl` implements it over a Room
+DAO. `SessionRepository` remembers who's logged in. There is no ViewModel layer
+yet — activities call the repositories directly inside coroutines. See
+[02-architecture.md](02-architecture.md).
+
+> **Storage was migrated from a hand-rolled `users.json` to Room in July 2026.**
+> The migration is **not finished — the build is currently red.** Start at
+> [06-current-state.md](06-current-state.md).

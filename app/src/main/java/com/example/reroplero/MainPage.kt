@@ -55,7 +55,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-import com.example.reroplero.data.Payment
+import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.data.SessionStore
 import kotlinx.coroutines.launch
 
@@ -115,6 +115,7 @@ class MainPage : ComponentActivity() {
                             onSave = { category, cost, timeMillis ->
                                 val payment = Payment(
                                     id = UUID.randomUUID().toString(),
+                                    username = username,
                                     category = category,
                                     cost = cost.toDoubleOrNull() ?: 0.0,
                                     timestamp = timeMillis
