@@ -54,4 +54,55 @@ class UserStore(context: Context) {
         }
         false
     }
+
+    public suspend fun addPayment(username: String, payment: Payment) : Boolean = withContext(Dispatchers.IO) {
+        val users = readAll()
+        for (i in 0 until users.length()){
+            val user = users.getJSONObject(i)
+            if(user.getString("username") == username){
+                val payments = user.optJSONArray("payments") ?: JSONArray()
+                payments.put(
+                JSONObject()
+                    .put("id", payment.id)
+                    .put("category", payment.category)
+                    .put("cost", payment.cost)
+                    .put("timestamp", payment.timestamp)
+                )
+                user.put("payments", payments)
+                file.writeText(users.toString())
+                return@withContext true
+            }
+        }
+        false
+    }
+
+    suspend fun currentMoney(username: String) : Double = withContext(Dispatchers.IO){
+
+        val list = getPayments(username) ?: return@withContext -1.0
+        val sum = list.sumOf { it.cost }
+
+        println("returning sum of payments for user: $username -> $sum")
+        return@withContext sum
+
+    }
+
+    suspend fun getPayments(username: String): List<Payment> = withContext(Dispatchers.IO){
+        val users = readAll()
+        for (i in 0 until users.length()){
+            val user = users.getJSONObject(i)
+            if (user.getString("username") == username){
+                val paymentsJson = user.optJSONArray("payments") ?: return@withContext emptyList()
+                val res = mutableListOf<Payment>()
+                for (j in 0 until paymentsJson.length()){
+                    val p = paymentsJson.getJSONObject(j)
+                    res.add(Payment(id = p.getString("id"),
+                        category = p.getString("category"),
+                        cost = p.getDouble("cost"),
+                        timestamp = p.getLong("timestamp")))
+                }
+                return@withContext res
+            }
+        }
+        emptyList()
+    }
 }

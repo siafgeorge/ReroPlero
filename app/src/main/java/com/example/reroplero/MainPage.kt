@@ -34,52 +34,74 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-data class Payment(
-    val id: String,
-    val category: String,
-    val cost: Double,
-    val timestamp: Long
-)
+import com.example.reroplero.data.Payment
+import com.example.reroplero.data.SessionStore
+import kotlinx.coroutines.launch
 
+lateinit var globalSession: SessionStore
 class MainPage : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        globalSession = SessionStore(this)
         super.onCreate(savedInstanceState)
+        val username = globalSession.currentUser() ?: return
         setContent() {
             var showSheet by remember { mutableStateOf(false) }
+            val scope = rememberCoroutineScope()
+            var total by remember {mutableStateOf(0.0)}
+
+            LaunchedEffect(Unit) {
+                total = globalSession.curMon()
+            }
+
             Column(
                 modifier = Modifier.fillMaxSize().background(Color(getColor(R.color.background))),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Main page", color = Color.White)
+                Text("Total: $total", color = Color.White, style = MaterialTheme.typography.headlineMedium)
             }
             Spacer(Modifier.padding(20.dp))
             Box(
                 modifier = Modifier.fillMaxSize().background(Color(getColor(R.color.background)))
             ){
+                val topgap = 70
+                Text(
+                    text = "%.2f".format(total),
+                    color = Color(getColor(R.color.appGreen)),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = topgap.dp, start = 16.dp)
+                )
+
                 FloatingActionButton(
                     onClick = { showSheet = true },
-                    containerColor = Color(0xFF4CAF50), //TODO make this global color
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 60.dp, end = 16.dp)
+                    containerColor = Color(getColor(R.color.appGreen)),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = topgap.dp, end = 16.dp)
                 ) {
                     Icon(
                         Icons.Filled.Add,
@@ -91,13 +113,17 @@ class MainPage : ComponentActivity() {
                     ModalBottomSheet(onDismissRequest = { showSheet = false }) {
                         PaymentForm(
                             onSave = { category, cost, timeMillis ->
-                                val payment = Payment(id = UUID.randomUUID().toString(),
+                                val payment = Payment(
+                                    id = UUID.randomUUID().toString(),
                                     category = category,
                                     cost = cost.toDoubleOrNull() ?: 0.0,
                                     timestamp = timeMillis
                                 )
 
-                                createPayment(payment)
+                                scope.launch {
+                                    globalSession.addPay(payment)
+                                    total = globalSession.curMon()
+                                }
                                 showSheet = false
                             }
                         )
@@ -108,13 +134,6 @@ class MainPage : ComponentActivity() {
     }
 }
 
-
-fun createPayment(payment: Payment){
-    val formatted = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(Date(payment.timestamp))
-    println("create payment button tapped with -> category=${payment.category} cost:${payment.cost} when:${payment.timestamp}")
-    // TODO: Use PaymentStore to persist the Payment object
-
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

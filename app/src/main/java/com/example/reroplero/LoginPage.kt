@@ -125,6 +125,7 @@ suspend fun loginAction(context: Context, username: String, password: String, us
     val success = userStore.checkCredentials(username, password)
     if (success) {
         println("login successful")
+        SessionStore(context).setCurrentUser(username)
         context.startActivity(Intent(context, MainPage::class.java))
     } else {
         println("login not successful")
