@@ -1,10 +1,9 @@
 package com.example.reroplero
 
-//import android.R
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,11 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,10 +40,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.SessionStore
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -123,7 +130,7 @@ class MainPage : ComponentActivity() {
                                 tab = Tab.TRANSLIST
                             },
                         )
-                        Tab.TRANSLIST -> TransList(session)
+                        Tab.TRANSLIST -> TransList(session, onChanged = {scope.launch { total = session.curMon() } } )
                         Tab.CRYPTO -> CryptoScreen(session)
                     }
                 }
@@ -281,7 +288,7 @@ fun Homescreen(
                 id = UUID.randomUUID().toString(),
                 username = user,
                 category = category,
-                cost = cost.toDoubleOrNull() ?: 0.0,
+                cost = checkDouble(cost.toDoubleOrNull()),
                 timestamp = timeMillis
             )
             scope.launch {
@@ -292,8 +299,13 @@ fun Homescreen(
     )
 
 }
-@Composable fun TransList(session: SessionStore) {
+
+fun checkDouble(num: Double?): Double{
+    if ((cost.toDoubleOrNull() ?: return@PaymentForm) > 0.0) cost.toDoubleOrNull() ?: return@PaymentForm else return@PaymentForm
+}
+@Composable fun TransList(session: SessionStore, onChanged: () -> Job) {
     var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { payments = session.getPay() }
 
     if (payments.isEmpty()) {
@@ -308,8 +320,16 @@ fun Homescreen(
         contentPadding = PaddingValues(16.dp), //TODO move this value to the constants.
         verticalArrangement = Arrangement.spacedBy(12.dp) //TODO same here.
     ) {
-        items(payments, key = {it.id}) {
-            payment -> PaymentCard(payment)
+        items(payments, key = {it.id}) { payment ->
+            SwipeablePaymentCard(
+                payment = payment,
+                onDelete = {
+                    payments = payments.filterNot { it.id == payment.id }
+                    scope.launch {
+                        session.delPay(payment)
+                        onChanged()
+                    }
+                })
         }
     }
 }
@@ -346,6 +366,49 @@ fun PaymentCard(payment: Payment){
     }
 
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            }else{
+                false
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val isDelete = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CardDefaults.shape)
+                    .background(if (isDelete) MaterialTheme.colorScheme.errorContainer
+                            else MaterialTheme.colorScheme.primary
+                    )
+                    .padding(horizontal = 20.dp),
+                contentAlignment = if (isDelete) Alignment.CenterEnd else Alignment.CenterStart
+            ) {
+                Icon(
+                    if (isDelete) Icons.Filled.Delete else Icons.Filled.Edit,
+                    contentDescription = if (isDelete) "Delete" else "Edit",
+                    tint = if (isDelete) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    ) {
+        PaymentCard(payment)
+    }
+
+}
+
 @Composable fun CryptoScreen(session: SessionStore) { Text("Crypto") }
 
 enum class Tab(val label: String, val icon: ImageVector){

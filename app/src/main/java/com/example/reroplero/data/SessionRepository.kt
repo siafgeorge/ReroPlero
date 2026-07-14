@@ -40,4 +40,8 @@ class SessionStore(private val context: Context) {
     suspend fun curMon(): Double{
         return UserRepositoryImpl(context).currentMoney(currentUser() ?: return -1.0)
     }
+
+    suspend fun delPay(payment: Payment) {
+        UserRepositoryImpl(context).deletePayment(payment)
+    }
 }
