@@ -1,5 +1,6 @@
 package com.example.reroplero
 
+import android.R
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -26,8 +32,11 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -45,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -80,61 +90,48 @@ class MainPage : ComponentActivity() {
                 total = session.curMon()
             }
 
-            Column(
-                modifier = Modifier.fillMaxSize().background(Color(getColor(R.color.background))),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Total: $total", color = Color.White, style = MaterialTheme.typography.headlineMedium)
-            }
-            Spacer(Modifier.padding(20.dp))
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color(getColor(R.color.background)))
-            ){
-                val topgap = 70
-                Text(
-                    text = "%.2f".format(total),
-                    color = Color(getColor(R.color.appGreen)),
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = topgap.dp, start = 16.dp)
-                )
+            var tab by remember { mutableStateOf(Tab.HOME) }
 
-                FloatingActionButton(
-                    onClick = { showSheet = true },
-                    containerColor = Color(getColor(R.color.appGreen)),
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = topgap.dp, end = 16.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Add"
-                    )
+            Scaffold(
+                bottomBar = {
+                    NavigationBar {
+                        Tab.entries.forEach { t ->
+                            NavigationBarItem(
+                                selected = tab == t,
+                                onClick = { tab = t },
+                                icon = { Icon(t.icon, contentDescription = t.label) },
+                                label = { Text(t.label) },
+                            )
+                        }
+                    }
                 }
-
-                if (showSheet){
-                    ModalBottomSheet(onDismissRequest = { showSheet = false }) {
-                        PaymentForm(
-                            onSave = { category, cost, timeMillis ->
-                                val payment = Payment(
-                                    id = UUID.randomUUID().toString(),
-                                    username = username,
-                                    category = category,
-                                    cost = cost.toDoubleOrNull() ?: 0.0,
-                                    timestamp = timeMillis
-                                )
-
-                                scope.launch {
-                                    session.addPay(payment)
-                                    total = session.curMon()
-                                }
-                                showSheet = false
-                            }
+            ) {
+                innerPadding ->
+                Box(Modifier.padding(innerPadding)) {
+                    when (tab) {
+                        Tab.HOME -> Homescreen(
+                            username = username,
+                            total = total,
+                            onPayment = { scope.launch { total = session.curMon() } },
+                            session = session,
                         )
+                        Tab.ANALYTICS -> AnalyticsScreen(session)
+                        Tab.TRANSACTION -> NewtransScreen(
+                            session,
+                            onSaved = {
+                                scope.launch { total = session.curMon() }
+                                tab = Tab.HOME
+                            },
+                        )
+                        Tab.LIST -> TransList(session)
+                        Tab.CRYPTO -> CryptoScreen(session)
                     }
                 }
             }
+
+
+
+
         }
     }
 }
@@ -259,25 +256,49 @@ fun PaymentForm(onSave: (category: String, cost: String, timeMillis: Long) -> Un
         )
     }
 }
-//
-//@Composable
-//fun Homescreen(
-//    username: String,
-//    total: Double,
-//    onPayment: () -> Unit,
-//    session: SessionStore
-//){}
-//
-//@Composable fun AnalyticsScreen(session: SessionStore) { Text("Analytics") }
-//@Composable fun NewtransScreen(session: SessionStore) { Text("New Transaction") }
-//@Composable fun TransList(session: SessionStore) { Text("Transaction List") }
-//@Composable fun CryptoScreen(session: SessionStore) { Text("Crypto") }
-//
-//enum class Tab(val label: String, val icon: ImageVector){
-//    HOME("Home", Icons.Default.Home),
-//    ANALYTICS(label = "Analytics", Icons.Default.Check),
-//    TRANSACTION(label = "New Transaction", Icons.Default.AddCircle),
-//    LIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
-//    CRYPTO(label = "Crypto", Icons.Filled.Lock)
-//
-//}
+
+@Composable
+fun Homescreen(
+    username: String,
+    total: Double,
+    onPayment: () -> Unit,
+    session: SessionStore
+){
+    Text("HELLO WORLD !")
+}
+
+@Composable fun AnalyticsScreen(session: SessionStore) { Text("Analytics") }
+@Composable fun NewtransScreen(session: SessionStore, onSaved: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var username by remember { mutableStateOf<String?> (null)}
+
+    LaunchedEffect(Unit) { username = session.currentUser() }
+    val user : String = username ?: return
+    PaymentForm(
+        onSave = { category, cost, timeMillis ->
+            val payment = Payment(
+                id = UUID.randomUUID().toString(),
+                username = user,
+                category = category,
+                cost = cost.toDoubleOrNull() ?: 0.0,
+                timestamp = timeMillis
+            )
+            scope.launch {
+                session.addPay(payment)
+                onSaved()
+            }
+        }
+    )
+
+}
+@Composable fun TransList(session: SessionStore) { Text("Transaction List") }
+@Composable fun CryptoScreen(session: SessionStore) { Text("Crypto") }
+
+enum class Tab(val label: String, val icon: ImageVector){
+    HOME("Home", Icons.Default.Home),
+    ANALYTICS(label = "Analytics", Icons.Default.Check),
+    TRANSACTION(label = "New Transaction", Icons.Default.AddCircle),
+    LIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
+    CRYPTO(label = "Crypto", Icons.Filled.Lock)
+
+}
