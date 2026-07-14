@@ -1,23 +1,20 @@
 package com.example.reroplero
 
-import android.R
+//import android.R
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
@@ -28,10 +25,8 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
@@ -51,16 +46,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.reroplero.data.SessionStore
 import com.example.reroplero.data.local.models.Payment
+import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -76,7 +68,7 @@ class MainPage : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         setContent() {
-            var showSheet by remember { mutableStateOf(false) }
+          ReroPleroTheme {
             val scope = rememberCoroutineScope()
             var total by remember {mutableStateOf(0.0)}
             var username by remember { mutableStateOf<String>("")}
@@ -120,14 +112,15 @@ class MainPage : ComponentActivity() {
                             session,
                             onSaved = {
                                 scope.launch { total = session.curMon() }
-                                tab = Tab.HOME
+                                tab = Tab.TRANSLIST
                             },
                         )
-                        Tab.LIST -> TransList(session)
+                        Tab.TRANSLIST -> TransList(session)
                         Tab.CRYPTO -> CryptoScreen(session)
                     }
                 }
             }
+          }
 
 
 
@@ -184,7 +177,7 @@ fun PaymentForm(onSave: (category: String, cost: String, timeMillis: Long) -> Un
             onValueChange = { cost = it },
             label = { Text("Cost") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(Modifier.height(16.dp))
@@ -298,7 +291,7 @@ enum class Tab(val label: String, val icon: ImageVector){
     HOME("Home", Icons.Default.Home),
     ANALYTICS(label = "Analytics", Icons.Default.Check),
     TRANSACTION(label = "New Transaction", Icons.Default.AddCircle),
-    LIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
+    TRANSLIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
     CRYPTO(label = "Crypto", Icons.Filled.Lock)
 
 }

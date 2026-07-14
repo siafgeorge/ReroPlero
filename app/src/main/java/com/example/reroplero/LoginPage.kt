@@ -47,7 +47,7 @@ class LoginPage : ComponentActivity() {
             val focusManager = LocalFocusManager.current
             Column (
                 modifier = Modifier.fillMaxSize()
-                    .background(Color(getColor(R.color.background)))
+                    .background(Color(getColor(R.color.mybackground)))
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = { focusManager.clearFocus() })
                     }

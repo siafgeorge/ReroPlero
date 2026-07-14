@@ -12,9 +12,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = AppGreen,
+    onPrimary = OnAppGreen,
+    secondary = AppGreen,
+    onSecondary = OnAppGreen,
+    tertiary = AppGreen,
+    onTertiary = OnAppGreen,
+
+    background = AppBackground,
+    onBackground = AppOnDark,
+
+    surface = AppBackground,
+    onSurface = AppOnDark,
+
+    // Chips, text-field containers, dialogs and the navigation bar all read
+    // their background from one of these surface roles.
+    surfaceVariant = AppSurface,
+    onSurfaceVariant = AppOnDarkMuted,
+    surfaceContainer = AppSurface,
+    surfaceContainerLow = AppSurface,
+    surfaceContainerHigh = AppSurfaceHigh,
+    surfaceContainerHighest = AppSurfaceHigh,
+
+    // Selected chips / the FAB.
+    secondaryContainer = AppGreen,
+    onSecondaryContainer = OnAppGreen,
+
+    outline = AppOutline,
+    outlineVariant = AppOutline,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -35,9 +60,10 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun ReroPleroTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // ReroPlero is a dark-only app: its palette is dark whatever the system says.
+    darkTheme: Boolean = true,
+    // Dynamic color would let the user's wallpaper override the palette below.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
