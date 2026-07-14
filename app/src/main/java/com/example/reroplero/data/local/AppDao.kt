@@ -27,7 +27,7 @@ interface AppDao {
     @Insert(entity = Payment::class)
     suspend fun insertPayment(payment: Payment) : Long
 
-    @Query("SELECT * FROM payments WHERE username = :username")
+    @Query("SELECT * FROM payments WHERE username = :username ORDER BY timestamp DESC")
     suspend fun getPayments(username: String): List<Payment>
 
     @Query("SELECT SUM(cost) FROM payments WHERE username = :username")
