@@ -351,8 +351,8 @@ fun PaymentCard(payment: Payment){
 enum class Tab(val label: String, val icon: ImageVector){
     HOME("Home", Icons.Default.Home),
     ANALYTICS(label = "Analytics", Icons.Default.Check),
-    TRANSACTION(label = "New Transaction", Icons.Default.AddCircle),
-    TRANSLIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
+    TRANSACTION(label = "New", Icons.Default.AddCircle),
+    TRANSLIST(label = "List", Icons.AutoMirrored.Filled.List),
     CRYPTO(label = "Crypto", Icons.Filled.Lock)
 
 }
