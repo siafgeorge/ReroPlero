@@ -288,7 +288,7 @@ fun Homescreen(
                 id = UUID.randomUUID().toString(),
                 username = user,
                 category = category,
-                cost = checkDouble(cost.toDoubleOrNull()),
+                cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
                 timestamp = timeMillis
             )
             scope.launch {
@@ -300,9 +300,11 @@ fun Homescreen(
 
 }
 
-fun checkDouble(num: Double?): Double{
-    if ((cost.toDoubleOrNull() ?: return@PaymentForm) > 0.0) cost.toDoubleOrNull() ?: return@PaymentForm else return@PaymentForm
+fun checkDouble(num: Double?): Double?{
+    if (num != null && num > 0.0) return num
+    return null
 }
+
 @Composable fun TransList(session: SessionStore, onChanged: () -> Job) {
     var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
