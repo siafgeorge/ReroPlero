@@ -49,31 +49,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reroplero.data.SessionStore
+import com.example.reroplero.data.local.models.Payment
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.SessionStore
-import kotlinx.coroutines.launch
-
-lateinit var globalSession: SessionStore
 class MainPage : ComponentActivity() {
-
+    private val session by lazy { SessionStore(applicationContext)}
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        globalSession = SessionStore(this)
+
+
         super.onCreate(savedInstanceState)
-        val username = globalSession.currentUser() ?: return
         setContent() {
             var showSheet by remember { mutableStateOf(false) }
             val scope = rememberCoroutineScope()
             var total by remember {mutableStateOf(0.0)}
-
+            var username by remember { mutableStateOf<String>("")}
             LaunchedEffect(Unit) {
-                total = globalSession.curMon()
+                val user = session.currentUser()
+                if (user == null) {
+                    finish()
+                    return@LaunchedEffect
+                }
+                username = user
+                total = session.curMon()
             }
 
             Column(
@@ -122,8 +126,8 @@ class MainPage : ComponentActivity() {
                                 )
 
                                 scope.launch {
-                                    globalSession.addPay(payment)
-                                    total = globalSession.curMon()
+                                    session.addPay(payment)
+                                    total = session.curMon()
                                 }
                                 showSheet = false
                             }
@@ -255,3 +259,25 @@ fun PaymentForm(onSave: (category: String, cost: String, timeMillis: Long) -> Un
         )
     }
 }
+//
+//@Composable
+//fun Homescreen(
+//    username: String,
+//    total: Double,
+//    onPayment: () -> Unit,
+//    session: SessionStore
+//){}
+//
+//@Composable fun AnalyticsScreen(session: SessionStore) { Text("Analytics") }
+//@Composable fun NewtransScreen(session: SessionStore) { Text("New Transaction") }
+//@Composable fun TransList(session: SessionStore) { Text("Transaction List") }
+//@Composable fun CryptoScreen(session: SessionStore) { Text("Crypto") }
+//
+//enum class Tab(val label: String, val icon: ImageVector){
+//    HOME("Home", Icons.Default.Home),
+//    ANALYTICS(label = "Analytics", Icons.Default.Check),
+//    TRANSACTION(label = "New Transaction", Icons.Default.AddCircle),
+//    LIST(label = "Transaction List", Icons.AutoMirrored.Filled.List),
+//    CRYPTO(label = "Crypto", Icons.Filled.Lock)
+//
+//}

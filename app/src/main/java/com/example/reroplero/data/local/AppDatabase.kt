@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.reroplero.R
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.data.local.models.User
 
@@ -21,7 +22,8 @@ abstract class AppDatabase : RoomDatabase() {
                  INSTANCE ?: Room.databaseBuilder(
                      context.applicationContext,
                      AppDatabase::class.java,
-                     "reroplero.db").build().also {INSTANCE = it} //TODO make it constant
+                     context.getString(R.string.database)
+                 ).build().also {INSTANCE = it}
             }
     }
 }

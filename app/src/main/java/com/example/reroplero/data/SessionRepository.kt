@@ -1,25 +1,29 @@
 package com.example.reroplero.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.reroplero.data.local.models.Payment
+import kotlinx.coroutines.flow.first
 
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "session")
+private val KEY_USER = stringPreferencesKey("current_username")
 
-// TODO check if you can move this values to the const file
-private const val PREFS = "session"
-private const val KEY_USER = "current_username"
 class SessionStore(private val context: Context) {
-    //TODO replace with datastore
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-    fun setCurrentUser(username: String){
-        prefs.edit().putString(KEY_USER, username).apply()
-    }
-    fun currentUser(): String? = prefs.getString(KEY_USER, null)
-
-    fun clear(){
-        prefs.edit().remove(KEY_USER).apply()
+    suspend fun setCurrentUser(username: String){
+        context.dataStore.edit{it[KEY_USER] = username}
     }
 
+    suspend fun currentUser() : String? {
+        return context.dataStore.data.first()[KEY_USER]
+    }
+
+    suspend fun clear() {
+        context.dataStore.edit{ it.remove(KEY_USER) }
+    }
 
     suspend fun addPay(payment: Payment): Boolean {
         val username = currentUser() ?: return false
