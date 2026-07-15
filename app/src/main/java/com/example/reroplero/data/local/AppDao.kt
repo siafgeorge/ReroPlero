@@ -3,6 +3,7 @@ package com.example.reroplero.data.local
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.data.local.models.User
@@ -24,7 +25,7 @@ interface AppDao {
     @Query("SELECT EXISTS(SELECT 1 FROM users WHERE username = :username AND password = :password)")
     suspend fun checkCreds(username: String, password: String): Boolean
 
-    @Insert(entity = Payment::class)
+    @Insert(onConflict = OnConflictStrategy.REPLACE, entity = Payment::class)
     suspend fun insertPayment(payment: Payment) : Long
 
     @Query("SELECT * FROM payments WHERE username = :username ORDER BY timestamp DESC")

@@ -49,6 +49,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -97,7 +98,8 @@ class MainPage : ComponentActivity() {
                 total = session.curMon()
             }
 
-            var tab by remember { mutableStateOf(Tab.HOME) }
+              var tab by remember { mutableStateOf(Tab.HOME) }
+              var editing by remember { mutableStateOf<Payment?>(null)}
 
             Scaffold(
                 bottomBar = {
@@ -125,12 +127,25 @@ class MainPage : ComponentActivity() {
                         Tab.ANALYTICS -> AnalyticsScreen(session)
                         Tab.TRANSACTION -> NewtransScreen(
                             session,
+                            editing = editing,
+                            onLeave = {editing = null},
                             onSaved = {
                                 scope.launch { total = session.curMon() }
                                 tab = Tab.TRANSLIST
                             },
                         )
-                        Tab.TRANSLIST -> TransList(session, onChanged = {scope.launch { total = session.curMon() } } )
+
+                        Tab.TRANSLIST -> TransList(session, onEdit = { payment ->
+                            editing = payment
+                            tab = Tab.TRANSACTION
+                           },
+                            onChanged = {
+                                scope.launch {
+                                    total = session.curMon()
+                                }
+                            }
+                        )
+
                         Tab.CRYPTO -> CryptoScreen(session)
                     }
                 }
@@ -147,13 +162,14 @@ class MainPage : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentForm(onSave: (category: String, cost: String, timeMillis: Long) -> Unit) {
+fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: String, timeMillis: Long) -> Unit) {
     val categories = listOf("Food", "Transport", "Rent", "Fun")
-    var selectedCategory by remember { mutableStateOf(categories.first()) }
-    var cost by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(editing?.category ?: categories.first()) }
+    var cost by remember {  mutableStateOf(editing?.cost?.toString() ?: "") }
 
     // Date & time default to "now" and can be changed with the pickers below.vo
-    val now = remember { Calendar.getInstance() }
+    val now = remember { Calendar.getInstance().apply { if (editing != null) timeInMillis = editing.timestamp } }
+
     var dateMillis by remember { mutableLongStateOf(now.timeInMillis) }
     var hour by remember { mutableIntStateOf(now.get(Calendar.HOUR_OF_DAY)) }
     var minute by remember { mutableIntStateOf(now.get(Calendar.MINUTE)) }
@@ -272,20 +288,39 @@ fun Homescreen(
     onPayment: () -> Unit,
     session: SessionStore
 ){
-    Text("HELLO WORLD !")
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ){
+        Text("HELLO $username !")
+        Spacer(Modifier.height(12.dp))
+        Text("Your money are minus $total")
+    }
 }
 
-@Composable fun AnalyticsScreen(session: SessionStore) { Text("Analytics") }
-@Composable fun NewtransScreen(session: SessionStore, onSaved: () -> Unit) {
+@Composable fun AnalyticsScreen(session: SessionStore) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ){
+        Text("2BA nalytics")
+    }
+}
+@Composable fun NewtransScreen(session: SessionStore, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
+    DisposableEffect(Unit) {
+        onDispose { onLeave() }
+    }
     val scope = rememberCoroutineScope()
     var username by remember { mutableStateOf<String?> (null)}
 
     LaunchedEffect(Unit) { username = session.currentUser() }
     val user : String = username ?: return
     PaymentForm(
+        editing = editing,
         onSave = { category, cost, timeMillis ->
             val payment = Payment(
-                id = UUID.randomUUID().toString(),
+                id = editing?.id ?: UUID.randomUUID().toString(),
                 username = user,
                 category = category,
                 cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
@@ -305,7 +340,7 @@ fun checkDouble(num: Double?): Double?{
     return null
 }
 
-@Composable fun TransList(session: SessionStore, onChanged: () -> Job) {
+@Composable fun TransList(session: SessionStore, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
     var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { payments = session.getPay() }
@@ -325,6 +360,7 @@ fun checkDouble(num: Double?): Double?{
         items(payments, key = {it.id}) { payment ->
             SwipeablePaymentCard(
                 payment = payment,
+                onEdit = { onEdit(payment) },
                 onDelete = {
                     payments = payments.filterNot { it.id == payment.id }
                     scope.launch {
@@ -371,12 +407,15 @@ fun PaymentCard(payment: Payment){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit) {
+fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) { //TODO add here onedit and edit the transaction
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
                 onDelete()
                 true
+            }else if (value == SwipeToDismissBoxValue.StartToEnd){
+                onEdit()
+                false
             }else{
                 false
             }
