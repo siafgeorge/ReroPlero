@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -81,10 +82,7 @@ import java.util.UUID
 
 class MainPage : ComponentActivity() {
     private val viewModel by lazy { MainPageViewModel(applicationContext) }
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-
-
         super.onCreate(savedInstanceState)
         setContent {
           ReroPleroTheme {
@@ -92,16 +90,15 @@ class MainPage : ComponentActivity() {
             var total by remember { mutableDoubleStateOf(0.0) }
             var username by remember { mutableStateOf("")}
             LaunchedEffect(Unit) {
-                val user = viewModel.getCurrentUser() //TODO move this to viewmodel
+                val user = viewModel.getCurrentUser()
                 if (user == null) {
                     finish()
                     return@LaunchedEffect
                 }
                 username = user
-                total = viewModel.getCurrentMoney() //TODO move this to viewmodel
+                total = viewModel.getCurrentMoney()
             }
 
-//              var tab by remember { mutableStateOf(Tab.HOME) }
               val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
               var editing by remember { mutableStateOf<Payment?>(null)}
 
@@ -130,6 +127,7 @@ class MainPage : ComponentActivity() {
                             username = username,
                             total = total,
                         )
+
                         Tab.ANALYTICS -> AnalyticsScreen()
                         Tab.TRANSACTION -> NewtransScreen(
                             viewModel,
@@ -163,15 +161,15 @@ class MainPage : ComponentActivity() {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // used for calendar dialog
 @Composable
 fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: String, timeMillis: Long) -> Unit) {
     val categories = listOf("Food", "Transport", "Rent", "Fun")
-    var selectedCategory by remember { mutableStateOf(editing?.category ?: categories.first()) }
-    var cost by remember {  mutableStateOf(editing?.cost?.toString() ?: "") }
+    var selectedCategory by remember(editing) { mutableStateOf(editing?.category ?: categories.first()) }
+    var cost by remember(editing) {  mutableStateOf(editing?.cost?.toString() ?: "") }
 
     // Date & time default to "now" and can be changed with the pickers below.vo
-    val now = remember { Calendar.getInstance().apply { if (editing != null) timeInMillis = editing.timestamp } }
+    val now = remember (editing) { Calendar.getInstance().apply { if (editing != null) timeInMillis = editing.timestamp } }
 
     var dateMillis by remember { mutableLongStateOf(now.timeInMillis) }
     var hour by remember { mutableIntStateOf(now.get(Calendar.HOUR_OF_DAY)) }
@@ -208,7 +206,7 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
 
         OutlinedTextField(
             value = cost,
-            onValueChange = { cost = it },
+            onValueChange = { input -> if (input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) cost = input },
             label = { Text("Cost") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
@@ -322,22 +320,24 @@ fun Homescreen(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            PaymentForm(
-                editing = editing,
-                onSave = { category, cost, timeMillis ->
-                    val payment = Payment(
-                        id = editing?.id ?: UUID.randomUUID().toString(),
-                        username = user,
-                        category = category,
-                        cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
-                        timestamp = timeMillis
-                    )
-                    scope.launch {
-                        viewModel.addPay(payment)
-                        onSaved()
+            key(editing) {
+                PaymentForm(
+                    editing = editing,
+                    onSave = { category, cost, timeMillis ->
+                        val payment = Payment(
+                            id = editing?.id ?: UUID.randomUUID().toString(),
+                            username = user,
+                            category = category,
+                            cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
+                            timestamp = timeMillis
+                        )
+                        scope.launch {
+                            viewModel.addPay(payment)
+                            onSaved()
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 
@@ -461,12 +461,14 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
 
 }
 
-@Composable fun CryptoScreen() {     Box(
-    modifier = Modifier.fillMaxSize(),
-    contentAlignment = Alignment.Center
-){
-    Text("crypto")
-} }
+@Composable fun CryptoScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ){
+        Text("crypto")
+    }
+}
 
 enum class Tab(val label: String, val icon: ImageVector){
     HOME("Home", Icons.Default.Home),
