@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
     <application
         android:allowBackup="true"
@@ -12,7 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ReroPlero">
         <activity
-            android:name=".LoginPage"
+            android:name=".ui.presentation.LoginPage"
             android:exported="true"
             android:theme="@style/Theme.ReroPlero"
             android:windowSoftInputMode="adjustResize">
@@ -23,7 +22,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".MainPage" />
+        <activity android:name=".ui.presentation.MainPage" />
 
     </application>
 

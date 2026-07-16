@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.reroplero.data.local.models.Payment
 import kotlinx.coroutines.flow.first
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "session")
@@ -25,23 +24,4 @@ class SessionStore(private val context: Context) {
         context.dataStore.edit{ it.remove(KEY_USER) }
     }
 
-    suspend fun addPay(payment: Payment): Boolean {
-        val username = currentUser() ?: return false
-        val globStore = UserRepositoryImpl(context)
-        return globStore.addPayment(payment)
-    }
-
-    suspend fun getPay(): List<Payment> {
-        val globStore = UserRepositoryImpl(context)
-        val user = currentUser() ?: return emptyList()
-        return globStore.getPayments(user)
-    }
-
-    suspend fun curMon(): Double{
-        return UserRepositoryImpl(context).currentMoney(currentUser() ?: return -1.0)
-    }
-
-    suspend fun delPay(payment: Payment) {
-        UserRepositoryImpl(context).deletePayment(payment)
-    }
 }

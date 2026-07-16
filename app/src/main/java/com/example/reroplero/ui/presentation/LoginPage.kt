@@ -1,4 +1,4 @@
-package com.example.reroplero
+package com.example.reroplero.ui.presentation
 
 import android.content.Context
 import android.content.Intent
@@ -25,7 +25,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,7 +36,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.reroplero.data.*
+import com.example.reroplero.R
+import com.example.reroplero.data.SessionStore
+import com.example.reroplero.data.UserRepoImpl
+import com.example.reroplero.data.UserRepository
+import kotlinx.coroutines.launch
 
 class LoginPage : ComponentActivity() {
 
@@ -81,10 +84,11 @@ class LoginPage : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun LoginFields() {
     val context = LocalContext.current
-    val userRepository = remember { UserRepositoryImpl(context) }
+    val userRepository = remember { UserRepoImpl(context) }
     val scope = rememberCoroutineScope()
 
     var username by remember { mutableStateOf("") }

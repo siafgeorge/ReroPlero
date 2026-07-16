@@ -1,4 +1,4 @@
-package com.example.reroplero
+package com.example.reroplero.ui.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -52,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.reroplero.data.SessionStore
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.Job
@@ -77,7 +77,7 @@ import java.util.Locale
 import java.util.UUID
 
 class MainPage : ComponentActivity() {
-    private val session by lazy { SessionStore(applicationContext)}
+    private val viewModel by lazy { MainPageViewModel(applicationContext) }
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -86,16 +86,16 @@ class MainPage : ComponentActivity() {
         setContent() {
           ReroPleroTheme {
             val scope = rememberCoroutineScope()
-            var total by remember {mutableStateOf(0.0)}
+            var total by remember { mutableDoubleStateOf(0.0) }
             var username by remember { mutableStateOf<String>("")}
             LaunchedEffect(Unit) {
-                val user = session.currentUser()
+                val user = viewModel.getCurrentUser() //TODO move this to viewmodel
                 if (user == null) {
                     finish()
                     return@LaunchedEffect
                 }
                 username = user
-                total = session.curMon()
+                total = viewModel.getCurrentMoney() //TODO move this to viewmodel
             }
 
               var tab by remember { mutableStateOf(Tab.HOME) }
@@ -121,39 +121,36 @@ class MainPage : ComponentActivity() {
                         Tab.HOME -> Homescreen(
                             username = username,
                             total = total,
-                            onPayment = { scope.launch { total = session.curMon() } },
-                            session = session,
+                            onPayment = { scope.launch { total = viewModel.getCurrentMoney() } },
+                            viewModel = viewModel,
                         )
-                        Tab.ANALYTICS -> AnalyticsScreen(session)
+                        Tab.ANALYTICS -> AnalyticsScreen()
                         Tab.TRANSACTION -> NewtransScreen(
-                            session,
+                            viewModel,
                             editing = editing,
                             onLeave = {editing = null},
                             onSaved = {
-                                scope.launch { total = session.curMon() }
+                                scope.launch { total = viewModel.getCurrentMoney() }
                                 tab = Tab.TRANSLIST
                             },
                         )
 
-                        Tab.TRANSLIST -> TransList(session, onEdit = { payment ->
+                        Tab.TRANSLIST -> TransList(viewModel, onEdit = { payment ->
                             editing = payment
                             tab = Tab.TRANSACTION
                            },
                             onChanged = {
                                 scope.launch {
-                                    total = session.curMon()
+                                    total = viewModel.getCurrentMoney()
                                 }
                             }
                         )
 
-                        Tab.CRYPTO -> CryptoScreen(session)
+                        Tab.CRYPTO -> CryptoScreen()
                     }
                 }
             }
           }
-
-
-
 
         }
     }
@@ -286,7 +283,7 @@ fun Homescreen(
     username: String,
     total: Double,
     onPayment: () -> Unit,
-    session: SessionStore
+    viewModel: MainPageViewModel
 ){
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -299,7 +296,7 @@ fun Homescreen(
     }
 }
 
-@Composable fun AnalyticsScreen(session: SessionStore) {
+@Composable fun AnalyticsScreen() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -307,14 +304,14 @@ fun Homescreen(
         Text("2BA nalytics")
     }
 }
-@Composable fun NewtransScreen(session: SessionStore, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
+@Composable fun NewtransScreen(viewModel: MainPageViewModel, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
     DisposableEffect(Unit) {
         onDispose { onLeave() }
     }
     val scope = rememberCoroutineScope()
     var username by remember { mutableStateOf<String?> (null)}
 
-    LaunchedEffect(Unit) { username = session.currentUser() }
+    LaunchedEffect(Unit) { username = viewModel.getCurrentUser() }
     val user : String = username ?: return
     PaymentForm(
         editing = editing,
@@ -327,7 +324,7 @@ fun Homescreen(
                 timestamp = timeMillis
             )
             scope.launch {
-                session.addPay(payment)
+                viewModel.addPay(payment)
                 onSaved()
             }
         }
@@ -340,10 +337,10 @@ fun checkDouble(num: Double?): Double?{
     return null
 }
 
-@Composable fun TransList(session: SessionStore, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
+@Composable fun TransList(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
     var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { payments = session.getPay() }
+    LaunchedEffect(Unit) { payments = viewModel.getPay() }
 
     if (payments.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -364,7 +361,7 @@ fun checkDouble(num: Double?): Double?{
                 onDelete = {
                     payments = payments.filterNot { it.id == payment.id }
                     scope.launch {
-                        session.delPay(payment)
+                        viewModel.delPay(payment)
                         onChanged()
                     }
                 })
@@ -405,7 +402,7 @@ fun PaymentCard(payment: Payment){
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) //TODO check if you can remove this line
 @Composable
 fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) { //TODO add here onedit and edit the transaction
     val dismissState = rememberSwipeToDismissBoxState(
@@ -450,7 +447,7 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
 
 }
 
-@Composable fun CryptoScreen(session: SessionStore) { Text("Crypto") }
+@Composable fun CryptoScreen() { Text("Crypto") }
 
 enum class Tab(val label: String, val icon: ImageVector){
     HOME("Home", Icons.Default.Home),
