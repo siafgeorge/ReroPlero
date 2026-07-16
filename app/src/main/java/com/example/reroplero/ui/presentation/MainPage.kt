@@ -79,7 +79,7 @@ class MainPage : ComponentActivity() {
                             total = total,
                         )
 
-                        Tab.ANALYTICS -> AnalyticsScreen()
+                        Tab.ANALYTICS -> AnalyticsScreen( viewModel )
                         Tab.TRANSACTION -> NewtransScreen(
                             viewModel,
                             editing = editing,

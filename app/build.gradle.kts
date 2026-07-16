@@ -45,7 +45,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-
+//    graphs
+    implementation(libs.vico.compose)
 //    room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
