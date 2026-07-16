@@ -86,11 +86,11 @@ class MainPage : ComponentActivity() {
 
 
         super.onCreate(savedInstanceState)
-        setContent() {
+        setContent {
           ReroPleroTheme {
             val scope = rememberCoroutineScope()
             var total by remember { mutableDoubleStateOf(0.0) }
-            var username by remember { mutableStateOf<String>("")}
+            var username by remember { mutableStateOf("")}
             LaunchedEffect(Unit) {
                 val user = viewModel.getCurrentUser() //TODO move this to viewmodel
                 if (user == null) {
@@ -129,8 +129,6 @@ class MainPage : ComponentActivity() {
                         Tab.HOME -> Homescreen(
                             username = username,
                             total = total,
-                            onPayment = { scope.launch { total = viewModel.getCurrentMoney() } },
-                            viewModel = viewModel,
                         )
                         Tab.ANALYTICS -> AnalyticsScreen()
                         Tab.TRANSACTION -> NewtransScreen(
@@ -289,9 +287,7 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
 @Composable
 fun Homescreen(
     username: String,
-    total: Double,
-    onPayment: () -> Unit,
-    viewModel: MainPageViewModel
+    total: Double
 ){
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -417,19 +413,22 @@ fun PaymentCard(payment: Payment){
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class) //TODO check if you can remove this line
 @Composable
 fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            }else if (value == SwipeToDismissBoxValue.StartToEnd){
-                onEdit()
-                false
-            }else{
-                false
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onDelete()
+                    true
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onEdit()
+                    false
+                }
+                else -> {
+                    false
+                }
             }
         }
     )
