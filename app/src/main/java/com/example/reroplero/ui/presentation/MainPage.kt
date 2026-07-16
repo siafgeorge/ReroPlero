@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -76,6 +78,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
+
 class MainPage : ComponentActivity() {
     private val viewModel by lazy { MainPageViewModel(applicationContext) }
     @OptIn(ExperimentalMaterial3Api::class)
@@ -98,16 +101,18 @@ class MainPage : ComponentActivity() {
                 total = viewModel.getCurrentMoney() //TODO move this to viewmodel
             }
 
-              var tab by remember { mutableStateOf(Tab.HOME) }
+//              var tab by remember { mutableStateOf(Tab.HOME) }
+              val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
               var editing by remember { mutableStateOf<Payment?>(null)}
 
             Scaffold(
                 bottomBar = {
                     NavigationBar {
-                        Tab.entries.forEach { t ->
+                        Tab.entries.forEachIndexed { index, t ->
                             NavigationBarItem(
-                                selected = tab == t,
-                                onClick = { tab = t },
+                                selected = pagerState.currentPage == index,
+                                onClick = { if (t == Tab.TRANSACTION) editing = null
+                                          scope.launch { pagerState.animateScrollToPage(index) }},
                                 icon = { Icon(t.icon, contentDescription = t.label) },
                                 label = { Text(t.label) },
                             )
@@ -116,8 +121,11 @@ class MainPage : ComponentActivity() {
                 }
             ) {
                 innerPadding ->
-                Box(Modifier.padding(innerPadding)) {
-                    when (tab) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.padding(innerPadding)
+                ) { page ->
+                    when (Tab.entries[page]) {
                         Tab.HOME -> Homescreen(
                             username = username,
                             total = total,
@@ -131,13 +139,13 @@ class MainPage : ComponentActivity() {
                             onLeave = {editing = null},
                             onSaved = {
                                 scope.launch { total = viewModel.getCurrentMoney() }
-                                tab = Tab.TRANSLIST
+                                scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
                             },
                         )
 
-                        Tab.TRANSLIST -> TransList(viewModel, onEdit = { payment ->
+                        Tab.TRANSLIST -> TransListScreen(viewModel, onEdit = { payment ->
                             editing = payment
-                            tab = Tab.TRANSACTION
+                            scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
                            },
                             onChanged = {
                                 scope.launch {
@@ -313,22 +321,29 @@ fun Homescreen(
 
     LaunchedEffect(Unit) { username = viewModel.getCurrentUser() }
     val user : String = username ?: return
-    PaymentForm(
-        editing = editing,
-        onSave = { category, cost, timeMillis ->
-            val payment = Payment(
-                id = editing?.id ?: UUID.randomUUID().toString(),
-                username = user,
-                category = category,
-                cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
-                timestamp = timeMillis
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            PaymentForm(
+                editing = editing,
+                onSave = { category, cost, timeMillis ->
+                    val payment = Payment(
+                        id = editing?.id ?: UUID.randomUUID().toString(),
+                        username = user,
+                        category = category,
+                        cost = checkDouble(cost.toDoubleOrNull()) ?: return@PaymentForm,
+                        timestamp = timeMillis
+                    )
+                    scope.launch {
+                        viewModel.addPay(payment)
+                        onSaved()
+                    }
+                }
             )
-            scope.launch {
-                viewModel.addPay(payment)
-                onSaved()
-            }
         }
-    )
+    }
 
 }
 
@@ -337,7 +352,7 @@ fun checkDouble(num: Double?): Double?{
     return null
 }
 
-@Composable fun TransList(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
+@Composable fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
     var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { payments = viewModel.getPay() }
@@ -404,7 +419,7 @@ fun PaymentCard(payment: Payment){
 
 @OptIn(ExperimentalMaterial3Api::class) //TODO check if you can remove this line
 @Composable
-fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) { //TODO add here onedit and edit the transaction
+fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -447,7 +462,12 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
 
 }
 
-@Composable fun CryptoScreen() { Text("Crypto") }
+@Composable fun CryptoScreen() {     Box(
+    modifier = Modifier.fillMaxSize(),
+    contentAlignment = Alignment.Center
+){
+    Text("crypto")
+} }
 
 enum class Tab(val label: String, val icon: ImageVector){
     HOME("Home", Icons.Default.Home),
