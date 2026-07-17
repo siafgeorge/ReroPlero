@@ -10,25 +10,25 @@ import com.example.reroplero.data.local.models.Payment
 class MainPageViewModel(private val context: Context): ViewModel() {
 
     private val session: SessionStore = SessionStore(context)
+    private val globStore = PaymentRepoImpl(context)
+    private val userRepo = UserRepoImpl(context)
+
 
     suspend fun addPay(payment: Payment): Boolean {
-        val globStore = PaymentRepoImpl(context)
-        val user = getCurrentUser() ?: return false
         return globStore.addPayment(payment)
     }
 
     suspend fun getPay(): List<Payment> {
-        val globStore = PaymentRepoImpl(context)
         val user = getCurrentUser() ?: return emptyList()
         return globStore.getPayments(user)
     }
 
     suspend fun getCurrentMoney(): Double{
-        return UserRepoImpl(context).currentMoney(getCurrentUser() ?: return -1.0)
+        return userRepo.currentMoney(getCurrentUser() ?: return -1.0)
     }
 
     suspend fun delPay(payment: Payment) {
-        PaymentRepoImpl(context).deletePayment(payment)
+        globStore.deletePayment(payment)
     }
 
     suspend fun getCurrentUser(): String? {

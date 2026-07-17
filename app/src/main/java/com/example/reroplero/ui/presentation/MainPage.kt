@@ -3,16 +3,24 @@ package com.example.reroplero.ui.presentation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -24,12 +32,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.launch
-
 
 class MainPage : ComponentActivity() {
     private val viewModel by lazy { MainPageViewModel(applicationContext) }
@@ -55,15 +64,46 @@ class MainPage : ComponentActivity() {
 
             Scaffold(
                 bottomBar = {
-                    NavigationBar {
-                        Tab.entries.forEachIndexed { index, t ->
-                            NavigationBarItem(
-                                selected = pagerState.currentPage == index,
-                                onClick = { if (t == Tab.TRANSACTION) editing = null
-                                          scope.launch { pagerState.animateScrollToPage(index) }},
-                                icon = { Icon(t.icon, contentDescription = t.label) },
-                                label = { Text(t.label) },
-                            )
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                    ){
+                        NavigationBar(
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                        ) {
+                            Tab.entries.forEachIndexed { index, t ->
+                                if (t == Tab.TRANSACTION){
+                                    Spacer(Modifier.weight(1f))
+                                }else {
+                                    NavigationBarItem(
+                                        selected = pagerState.currentPage == index,
+                                        onClick = { if (t == Tab.TRANSACTION) editing = null
+                                                  scope.launch { pagerState.animateScrollToPage(index) }},
+                                        icon = { Icon(t.icon, contentDescription = t.label) },
+                                        label = { Text(t.label) },
+                                    )
+                                }
+                            }
+                        }
+
+                        val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
+                        FloatingActionButton(
+                            onClick = {
+                                editing = null
+                                scope.launch {
+                                    pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
+                                }
+                            },
+                                shape = CircleShape,
+                                containerColor = if (onNewPage) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = if (onNewPage) MaterialTheme.colorScheme.onSecondaryContainer
+                                        else MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.align(Alignment.TopCenter)
+                                                .size(64.dp)
+                                                .offset(y = (-24).dp)
+
+                        ){
+                            Icon(Tab.TRANSACTION.icon, contentDescription = Tab.TRANSACTION.label, modifier = Modifier.size(40.dp))
                         }
                     }
                 }
