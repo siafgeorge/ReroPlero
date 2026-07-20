@@ -55,6 +55,10 @@ dependencies {
 //   datastore
     implementation(libs.andoidx.datastore.preferences)
 
+//    retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

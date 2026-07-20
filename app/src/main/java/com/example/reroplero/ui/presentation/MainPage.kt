@@ -32,9 +32,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
@@ -61,6 +63,12 @@ class MainPage : ComponentActivity() {
 
               val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
               var editing by remember { mutableStateOf<Payment?>(null)}
+              val focusManager = LocalFocusManager.current
+              LaunchedEffect(pagerState) {
+                  snapshotFlow { pagerState.currentPage }.collect {
+                      focusManager.clearFocus()
+                  }
+              }
 
             Scaffold(
                 bottomBar = {

@@ -159,7 +159,7 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
 }
 
 
-fun checkDouble(num: Double?): Double?{
-    if (num != null && num > 0.0) return num
-    return null
-}
+//fun checkDouble(num: Double?): Double?{
+//    if (num != null && num > 0.0) return num
+//    return null
+//}
