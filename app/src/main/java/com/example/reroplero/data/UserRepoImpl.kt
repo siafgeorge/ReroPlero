@@ -8,14 +8,14 @@ import kotlinx.coroutines.withContext
 
 class UserRepoImpl(private val context: Context) : UserRepository {
     private val dao = AppDatabase.getInstance(context).dao()
-    override suspend fun register(username: String, password: String): Boolean {
-        if (username.isBlank() || password.isBlank()) return false
-        if (userExists(username)) return false
+    override suspend fun register(username: String, password: String): Boolean = withContext(Dispatchers.IO) {
+        if (username.isBlank() || password.isBlank()) return@withContext false
+        if (userExists(username)) return@withContext false
         dao.insertUser(User(username, password))
-        return true
+        return@withContext true
     }
 
-    override suspend fun checkCredentials(username: String, password: String) = dao.checkCreds(username, password)
+    override suspend fun checkCredentials(username: String, password: String) = dao.checkCreds(username, password) //TODO add return type
 
     override suspend fun currentMoney(username: String) : Double = withContext(Dispatchers.IO){
         return@withContext dao.totalFor(username)

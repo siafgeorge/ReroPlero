@@ -111,7 +111,7 @@ def random_payments(username, count, seed=None):
     """
     rng = random.Random(seed)
     now = datetime.now()
-    last_day = min(now.day, calendar.monthrange(now.year, now.month)[1])
+    last_day = max(now.day, calendar.monthrange(now.year, now.month)[1])
 
     rows = []
     for _ in range(count):

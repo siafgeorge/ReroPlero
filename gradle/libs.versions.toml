@@ -13,6 +13,8 @@ room = "2.8.4"
 ksp = "2.2.10-2.0.2"
 datastore = "1.1.7"
 vico = "3.2.3"
+retrofit = "2.11.0"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +38,8 @@ androidx-room-runtime = {group = "androidx.room", name = "room-runtime", version
 androidx-room-ktx = {group = "androidx.room", name = "room-ktx", version.ref = "room"}
 androidx-room-compiler = {group = "androidx.room", name = "room-compiler", version.ref = "room"}
 andoidx-datastore-preferences = {group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore"}
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit"}
+retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
