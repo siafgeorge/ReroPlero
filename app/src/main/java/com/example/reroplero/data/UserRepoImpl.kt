@@ -17,7 +17,7 @@ class UserRepoImpl(private val context: Context) : UserRepository {
 
     override suspend fun checkCredentials(username: String, password: String) = dao.checkCreds(username, password) //TODO add return type
 
-    override suspend fun currentMoney(username: String) : Double = withContext(Dispatchers.IO){
+    override suspend fun currentMoney(username: String) : Double? = withContext(Dispatchers.IO){
         return@withContext dao.totalFor(username)
     }
 

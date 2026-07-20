@@ -26,7 +26,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         return globStore.getPayments(user)
     }
 
-    suspend fun getCurrentMoney(): Double{
+    suspend fun getCurrentMoney(): Double? {
         return userRepo.currentMoney(getCurrentUser() ?: return -1.0)
     }
 

@@ -58,7 +58,7 @@ class MainPage : ComponentActivity() {
                     return@LaunchedEffect
                 }
                 username = user
-                total = viewModel.getCurrentMoney()
+                total = viewModel.getCurrentMoney() ?: 0.0
             }
 
               val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
@@ -133,7 +133,7 @@ class MainPage : ComponentActivity() {
                             editing = editing,
                             onLeave = {editing = null},
                             onSaved = {
-                                scope.launch { total = viewModel.getCurrentMoney() }
+                                scope.launch { total = viewModel.getCurrentMoney() ?: 0.0 }
                                 scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
                             },
                         )
@@ -144,7 +144,7 @@ class MainPage : ComponentActivity() {
                            },
                             onChanged = {
                                 scope.launch {
-                                    total = viewModel.getCurrentMoney()
+                                    total = viewModel.getCurrentMoney() ?: 0.0
                                 }
                             }
                         )

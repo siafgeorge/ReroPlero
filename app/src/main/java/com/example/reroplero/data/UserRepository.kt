@@ -8,7 +8,7 @@ interface UserRepository {
     suspend fun checkCredentials(username: String, password: String) : Boolean
 
 
-    suspend fun currentMoney(username: String) : Double
+    suspend fun currentMoney(username: String) : Double?
 
     suspend fun deleteUser(user: User)
     suspend fun getUser(user: String) : User
