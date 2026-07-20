@@ -25,6 +25,6 @@
         <activity android:name=".ui.presentation.MainPage"
             android:windowSoftInputMode="adjustResize" />
 
-    </application>w
+    </application>
 
 </manifest>

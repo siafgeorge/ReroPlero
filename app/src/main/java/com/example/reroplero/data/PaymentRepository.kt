@@ -5,7 +5,7 @@ import com.example.reroplero.data.local.models.Payment
 
 interface PaymentRepository {
 
-    public suspend fun addPayment(payment: Payment) : Boolean
+    suspend fun addPayment(payment: Payment) : Boolean
 
     suspend fun getPayments(username: String): List<Payment>
 

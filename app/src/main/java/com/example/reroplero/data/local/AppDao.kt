@@ -32,7 +32,7 @@ interface AppDao {
     suspend fun getPayments(username: String): List<Payment>
 
     @Query("SELECT SUM(cost) FROM payments WHERE username = :username")
-    suspend fun totalFor(username: String): Double
+    suspend fun totalFor(username: String): Double?
 
     @Delete
     suspend fun deletePayment(payment: Payment)
