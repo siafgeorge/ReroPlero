@@ -23,6 +23,6 @@ fun Homescreen(
     ){
         Text("HELLO $username !")
         Spacer(Modifier.height(12.dp))
-        Text("Your money are minus $total")
+        Text("Your balance is: -$${String.format("%.2f", total)}")
     }
 }

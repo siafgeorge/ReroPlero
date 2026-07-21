@@ -86,7 +86,7 @@ fun NewtransScreen(viewModel: MainPageViewModel, editing: Payment? = null, onLea
                     editing = editing,
                     onSave = { category, cost, timeMillis, selectedCurrency ->
                         scope.launch {
-                            viewModel.newTranSave(category, cost, timeMillis, editing, scope, onSaved, selectedCurrency)
+                            viewModel.newTranSave(category, cost, timeMillis, editing, onSaved, selectedCurrency)
                             formVersion ++
                         }
                     },
