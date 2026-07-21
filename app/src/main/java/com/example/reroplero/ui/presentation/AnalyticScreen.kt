@@ -13,10 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -36,13 +33,10 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.Fill
 import java.util.Calendar
 
-@Composable
-fun AnalyticsScreen(viewModel : MainPageViewModel) {
-    var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        payments = viewModel.getPay()
-    }
+@Composable
+fun AnalyticsScreen(payments: List<Payment>) {
+
 
     val dailyCosts = payments.groupBy { payment ->
         val cal = Calendar.getInstance().apply { timeInMillis = payment.timestamp }
@@ -73,7 +67,6 @@ fun AnalyticsScreen(viewModel : MainPageViewModel) {
                 val modelProducer = remember { CartesianChartModelProducer() }
                 val daysInMonth = Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH)
                 val xValues = (1..daysInMonth).toList()
-//                val yValues = xValues.map { day -> (dailyCosts[day] ?: 0.0).toFloat() }
                 val yValues = remember(dailyCosts){
                     var running = 0.0
                     xValues.map { day ->
@@ -81,8 +74,6 @@ fun AnalyticsScreen(viewModel : MainPageViewModel) {
                         running.toFloat()
                     }
                 }
-
-
 
                 LaunchedEffect(yValues) {
                     modelProducer.runTransaction {

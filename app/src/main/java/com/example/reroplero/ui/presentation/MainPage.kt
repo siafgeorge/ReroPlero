@@ -27,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.launch
@@ -47,113 +47,104 @@ class MainPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-          ReroPleroTheme {
-            val scope = rememberCoroutineScope()
-            var total by remember { mutableDoubleStateOf(0.0) }
-            var username by remember { mutableStateOf("")}
-            LaunchedEffect(Unit) {
-                val user = viewModel.getCurrentUser()
-                if (user == null) {
-                    finish()
-                    return@LaunchedEffect
+            ReroPleroTheme {
+                val scope = rememberCoroutineScope()
+                val state by viewModel.state.collectAsStateWithLifecycle()
+//                var total by remember { mutableDoubleStateOf(0.0) }
+
+                val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
+                var editing by remember { mutableStateOf<Payment?>(null)}
+                val focusManager = LocalFocusManager.current
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.currentPage }.collect {
+                        focusManager.clearFocus()
+                    }
                 }
-                username = user
-                total = viewModel.getCurrentMoney() ?: 0.0
-            }
 
-              val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
-              var editing by remember { mutableStateOf<Payment?>(null)}
-              val focusManager = LocalFocusManager.current
-              LaunchedEffect(pagerState) {
-                  snapshotFlow { pagerState.currentPage }.collect {
-                      focusManager.clearFocus()
-                  }
-              }
-
-            Scaffold(
-                bottomBar = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
-                    ){
-                        NavigationBar(
-                                modifier = Modifier.align(Alignment.BottomCenter)
-                        ) {
-                            Tab.entries.forEachIndexed { index, t ->
-                                if (t == Tab.TRANSACTION){
-                                    Spacer(Modifier.weight(1f))
-                                }else {
-                                    NavigationBarItem(
-                                        selected = pagerState.currentPage == index,
-                                        onClick = { if (t == Tab.TRANSACTION) editing = null
-                                                  scope.launch { pagerState.animateScrollToPage(index) }},
-                                        icon = { Icon(t.icon, contentDescription = t.label) },
-                                        label = { Text(t.label) },
-                                    )
-                                }
-                            }
-                        }
-
-                        val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
-                        FloatingActionButton(
-                            onClick = {
-                                editing = null
-                                scope.launch {
-                                    pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
-                                }
-                            },
-                                shape = CircleShape,
-                                containerColor = if (onNewPage) MaterialTheme.colorScheme.secondaryContainer
-                                        else MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = if (onNewPage) MaterialTheme.colorScheme.onSecondaryContainer
-                                        else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.align(Alignment.TopCenter)
-                                                .size(64.dp)
-                                                .offset(y = (-24).dp)
-
+                Scaffold(
+                    bottomBar = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
                         ){
-                            Icon(Tab.TRANSACTION.icon, contentDescription = Tab.TRANSACTION.label, modifier = Modifier.size(40.dp))
+                            NavigationBar(
+                                    modifier = Modifier.align(Alignment.BottomCenter)
+                            ) {
+                                Tab.entries.forEachIndexed { index, t ->
+                                    if (t == Tab.TRANSACTION){
+                                        Spacer(Modifier.weight(1f))
+                                    }else {
+                                        NavigationBarItem(
+                                            selected = pagerState.currentPage == index,
+                                            onClick = { if (t == Tab.TRANSACTION) editing = null
+                                                      scope.launch { pagerState.animateScrollToPage(index) }},
+                                            icon = { Icon(t.icon, contentDescription = t.label) },
+                                            label = { Text(t.label) },
+                                        )
+                                    }
+                                }
+                            }
+
+                            val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
+                            FloatingActionButton(
+                                onClick = {
+                                    editing = null
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
+                                    }
+                                },
+                                    shape = CircleShape,
+                                    containerColor = if (onNewPage) MaterialTheme.colorScheme.secondaryContainer
+                                            else MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = if (onNewPage) MaterialTheme.colorScheme.onSecondaryContainer
+                                            else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.align(Alignment.TopCenter)
+                                                    .size(64.dp)
+                                                    .offset(y = (-24).dp)
+
+                            ){
+                                Icon(Tab.TRANSACTION.icon, contentDescription = Tab.TRANSACTION.label, modifier = Modifier.size(40.dp))
+                            }
+                        }
+                    }
+                ) {
+                    innerPadding ->
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.padding(innerPadding)
+                    ) { page ->
+                        when (Tab.entries[page]) {
+                            Tab.HOME -> Homescreen(
+                                username = state.username,
+                                total = state.total,
+                            )
+
+                            Tab.ANALYTICS -> AnalyticsScreen( state.payments )
+                            Tab.TRANSACTION -> NewtransScreen(
+                                viewModel,
+                                editing = editing,
+                                onLeave = {editing = null},
+                                onSaved = {
+//                                    scope.launch { total = state.total }
+                                    scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
+                                },
+                            )
+
+                            Tab.TRANSLIST -> TransListScreen(viewModel, onEdit = { payment ->
+                                editing = payment
+                                scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
+                               },
+                                onChanged = {
+                                    scope.launch {
+//                                        total = state.total TODO fix this
+                                    }
+                                }
+                            )
+
+                            Tab.CRYPTO -> CryptoScreen()
                         }
                     }
                 }
-            ) {
-                innerPadding ->
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.padding(innerPadding)
-                ) { page ->
-                    when (Tab.entries[page]) {
-                        Tab.HOME -> Homescreen(
-                            username = username,
-                            total = total,
-                        )
-
-                        Tab.ANALYTICS -> AnalyticsScreen( viewModel )
-                        Tab.TRANSACTION -> NewtransScreen(
-                            viewModel,
-                            editing = editing,
-                            onLeave = {editing = null},
-                            onSaved = {
-                                scope.launch { total = viewModel.getCurrentMoney() ?: 0.0 }
-                                scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
-                            },
-                        )
-
-                        Tab.TRANSLIST -> TransListScreen(viewModel, onEdit = { payment ->
-                            editing = payment
-                            scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
-                           },
-                            onChanged = {
-                                scope.launch {
-                                    total = viewModel.getCurrentMoney() ?: 0.0
-                                }
-                            }
-                        )
-
-                        Tab.CRYPTO -> CryptoScreen()
-                    }
-                }
             }
-          }
 
         }
     }
