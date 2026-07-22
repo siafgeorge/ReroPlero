@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 
 import android.content.Context
@@ -8,7 +8,7 @@ import com.example.reroplero.data.PaymentRepoImpl
 import com.example.reroplero.data.SessionStore
 import com.example.reroplero.data.UserRepoImpl
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.remote.FrankfurterClient
+import com.example.reroplero.data.remote.CurrencyRepoImpl
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +24,9 @@ class MainPageViewModel(private val context: Context): ViewModel() {
     private val globStore = PaymentRepoImpl(context)
     private val userRepo = UserRepoImpl(context)
 
-    private val _effects = Channel<MainEffect>()
+    private val apiRepo = CurrencyRepoImpl()
+
+    private val _effects = Channel<MainEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
     private val _state = MutableStateFlow(MainUiState())
@@ -48,7 +50,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
-        val currencies = getCurrencies()
+        val currencies = apiRepo.availableCurrencies()
         _state.update { it.copy(payments = payments, total = total, currencies = currencies, isLoading = false) }
     }
 
@@ -60,7 +62,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         }
         val user = _state.value.username.ifBlank { return@launch }
         val eur = try {
-            convertCurrencyToEur(amount, intent.currency)
+            apiRepo.toEur(amount, intent.currency)
         }catch (_: Exception) {
             _effects.send(MainEffect.ShowError("Couldn't fetch exchange rate"))
             return@launch
@@ -75,7 +77,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         globStore.addPayment(payment)
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
-        _state.update { it.copy(payments = payments, total = total, editing = null) }
+        _state.update { it.copy(payments = payments, total = total, editing = null, formVersion = it.formVersion + 1) }
         _effects.send(MainEffect.GoToList)
     }
 
@@ -115,40 +117,6 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         return session.currentUser()
     }
 
-    suspend fun newTranSave(category: String, cost: String, timeMillis: Long, editing: Payment?, onSaved: () -> Unit, selectedCurrency: String) {
-
-        val updatedcost = convertCurrencyToEur(cost.toDoubleOrNull() ?: return, selectedCurrency)
-        val payment = Payment(
-            id = editing?.id ?: UUID.randomUUID().toString(),
-            username = getCurrentUser() ?: return ,
-            category = category,
-            cost = updatedcost,
-            timestamp = timeMillis
-        )
-
-        addPay(payment)
-        onSaved()
-    }
-
-    suspend fun getCurrencies(): List<String> {
-        return try{
-            FrankfurterClient.api.getCurrencies().keys.sorted()
-        }catch (e : Exception){
-            listOf("EUR")
-        }
-    }
-}
-
-
-suspend fun convertCurrencyToEur(cost: Double, selectedCurrency: String ) : Double {
-
-    if (selectedCurrency == "EUR") {
-        return cost
-    }
-
-    val response = FrankfurterClient.api.getLatest(base = selectedCurrency, symbols = "EUR")
-    val rate = response.rates["EUR"] ?: return 0.0
-    return cost * rate
 }
 
 fun checkDouble(num: Double?): Double?{

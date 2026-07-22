@@ -11,7 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ReroPlero">
         <activity
-            android:name=".ui.presentation.LoginPage"
+            android:name=".ui.presentation.login.LoginPage"
             android:exported="true"
             android:theme="@style/Theme.ReroPlero"
             android:windowSoftInputMode="adjustResize">
@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.presentation.MainPage"
+        <activity android:name=".ui.presentation.screens.MainPage"
             android:windowSoftInputMode="adjustResize" />
 
     </application>

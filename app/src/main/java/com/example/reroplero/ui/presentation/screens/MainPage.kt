@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -50,7 +50,6 @@ class MainPage : ComponentActivity() {
             ReroPleroTheme {
                 val scope = rememberCoroutineScope()
                 val state by viewModel.state.collectAsStateWithLifecycle()
-//                var total by remember { mutableDoubleStateOf(0.0) }
 
                 val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
                 var editing by remember { mutableStateOf<Payment?>(null)}
@@ -118,7 +117,7 @@ class MainPage : ComponentActivity() {
                                 total = state.total,
                             )
 
-                            Tab.ANALYTICS -> AnalyticsScreen( state.payments )
+                            Tab.ANALYTICS -> AnalyticsScreen(state.payments)
                             Tab.TRANSACTION -> NewtransScreen(
                                 viewModel,
                                 editing = editing,
@@ -127,12 +126,14 @@ class MainPage : ComponentActivity() {
 //                                    scope.launch { total = state.total }
                                     scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
                                 },
+                                state = state
                             )
 
-                            Tab.TRANSLIST -> TransListScreen(viewModel, onEdit = { payment ->
-                                editing = payment
-                                scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
-                               },
+                            Tab.TRANSLIST -> TransListScreen(
+                                viewModel, onEdit = { payment ->
+                                    editing = payment
+                                    scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
+                                },
                                 onChanged = {
                                     scope.launch {
 //                                        total = state.total TODO fix this

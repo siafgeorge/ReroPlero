@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

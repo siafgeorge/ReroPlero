@@ -1,15 +1,17 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import com.example.reroplero.data.local.models.Payment
+import com.example.reroplero.data.remote.CurrencyRepository
 
 data class MainUiState(
     val username: String = "",
     val total: Double = 0.0,
     val payments: List<Payment> = emptyList(),
-    val currencies: List<String> = listOf("EUR"),
+    val currencies: List<String> = listOf(CurrencyRepository.BASE_CURRENCY),
     val editing: Payment? = null,
     val isLoading: Boolean = false,
-    val notLoggedIn: Boolean = false
+    val notLoggedIn: Boolean = false,
+    val formVersion: Int = 0
 )
 
 sealed interface MainIntent {
