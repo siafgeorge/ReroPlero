@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.login
 
 import android.content.Context
 import android.content.Intent
@@ -20,11 +20,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,13 +35,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.R
 import com.example.reroplero.data.SessionStore
 import com.example.reroplero.data.UserRepoImpl
 import com.example.reroplero.data.UserRepository
+import com.example.reroplero.ui.presentation.screens.MainPage
 import kotlinx.coroutines.launch
 
 class LoginPage : ComponentActivity() {
+
+    private val viewModel by lazy {
+        LoginVewModel(applicationContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +76,7 @@ class LoginPage : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
                 ){
-                    LoginFields()
+                    LoginFields(viewModel)
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
@@ -86,24 +91,36 @@ class LoginPage : ComponentActivity() {
 
 
 @Composable
-fun LoginFields() {
+fun LoginFields(viewModel: LoginVewModel) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val userRepository = remember { UserRepoImpl(context) }
     val scope = rememberCoroutineScope()
 
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                LoginContracts.LoginEffect.GoToMain ->
+                    context.startActivity(Intent(context, MainPage::class.java))
+            }
+        }
+    }
+
     TextField(
-        value = username,
-        onValueChange = { username = it },
-        label = { Text("Username") }
+        value = state.username,
+        onValueChange = { viewModel.onAction(LoginContracts.LoginActions.OnUsernameChange(it)) },
+        label = { Text("Username") },
+        isError = state.usernameErrorText != null,
+        supportingText = {state.usernameErrorText?.let { Text(it) } }
     )
 
     TextField(
-        value = password,
-        onValueChange = { password = it },
+        value = state.password,
+        onValueChange = { viewModel.onAction(LoginContracts.LoginActions.OnPasswordChange(it)) },
         label = { Text("Password") },
-        visualTransformation = PasswordVisualTransformation()
+        visualTransformation = PasswordVisualTransformation(),
+        isError = state.passwordErrorText != null,
+        supportingText = {state.passwordErrorText?.let { Text(it) } }
     )
 
     Text(
@@ -112,13 +129,13 @@ fun LoginFields() {
         fontSize = 12.sp,
         modifier = Modifier.clickable {
             scope.launch {
-                val ok = userRepository.register(username, password)
-                println(if (ok) "registered $username" else "registration failed (blank or exists)")
+                val ok = userRepository.register(state.username, state.password)
+                println(if (ok) "registered ${state.username}" else "registration failed (blank or exists)")
             }
         }
     )
 
-    Button(onClick = { scope.launch { loginAction(context, username, password, userRepository) } }) {
+    Button(onClick = { viewModel.onAction(LoginContracts.LoginActions.Login) } ) {
         Text(stringResource(R.string.login_text))
     }
 }

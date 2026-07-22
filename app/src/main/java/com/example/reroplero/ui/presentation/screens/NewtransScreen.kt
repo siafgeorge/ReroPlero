@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +32,6 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -48,27 +47,18 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.local.models.Payment
-import kotlinx.coroutines.launch
+import com.example.reroplero.data.remote.CurrencyRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun NewtransScreen(viewModel: MainPageViewModel, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
+fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
     DisposableEffect(Unit) {
         onDispose { onLeave() }
     }
     val scope = rememberCoroutineScope()
-    var username by remember { mutableStateOf<String?> (null)}
-    var formVersion by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(Unit) { username = viewModel.getCurrentUser() }
-    val user : String = username ?: return
-
-    var currencies by remember {mutableStateOf(listOf("EUR"))}
-    LaunchedEffect(Unit) { currencies = viewModel.getCurrencies() }
-
     val focusManager = LocalFocusManager.current
 
     LazyColumn(
@@ -81,16 +71,20 @@ fun NewtransScreen(viewModel: MainPageViewModel, editing: Payment? = null, onLea
             }
     ) {
         item {
-            key(editing, formVersion) {
+            key(editing, state.formVersion) {
                 PaymentForm(
                     editing = editing,
                     onSave = { category, cost, timeMillis, selectedCurrency ->
-                        scope.launch {
-                            viewModel.newTranSave(category, cost, timeMillis, editing, onSaved, selectedCurrency)
-                            formVersion ++
-                        }
+                          viewModel.onIntent(
+                              MainIntent.SavePayment(
+                              category = category,
+                              cost = cost,
+                              timeMillis = timeMillis,
+                              currency = selectedCurrency
+                            )
+                          )
                     },
-                    currencies = currencies
+                    currencies = state.currencies
                 )
             }
         }
@@ -105,7 +99,7 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
     val categories = listOf("Food", "Transport", "Rent", "Fun")
 
     var selectedCurrency by remember(editing) {
-        mutableStateOf("EUR")
+        mutableStateOf(CurrencyRepository.BASE_CURRENCY)
     }
 
     var currencyExpanded by remember {mutableStateOf(false)}
