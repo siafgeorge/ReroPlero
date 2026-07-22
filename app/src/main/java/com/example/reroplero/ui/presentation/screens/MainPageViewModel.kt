@@ -77,6 +77,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         globStore.addPayment(payment)
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
+        println("the user total is $total")
         _state.update { it.copy(payments = payments, total = total, editing = null, formVersion = it.formVersion + 1) }
         _effects.send(MainEffect.GoToList)
     }
@@ -88,6 +89,7 @@ class MainPageViewModel(private val context: Context): ViewModel() {
             try {
                 globStore.deletePayment(payment)
                 val total = userRepo.currentMoney(_state.value.username) ?: 0.0
+                println("the user total is $total on delete")
                 _state.update {it.copy(total = total)}
             } catch (_: Exception){
                 _state.update { it.copy(payments = previous) }

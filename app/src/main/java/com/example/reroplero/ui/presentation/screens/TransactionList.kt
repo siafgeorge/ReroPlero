@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.data.local.models.Payment
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -68,7 +69,7 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onC
                 onDelete = {
                     payments = payments.filterNot { it.id == payment.id }
                     scope.launch {
-                        viewModel.delPay(payment)
+                        viewModel.onIntent(MainIntent.DeletePayment(payment))
                         onChanged()
                     }
                 })
