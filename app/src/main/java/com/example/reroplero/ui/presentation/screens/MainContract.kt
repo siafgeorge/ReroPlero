@@ -8,7 +8,7 @@ data class MainUiState(
     val total: Double = 0.0,
     val payments: List<Payment> = emptyList(),
     val currencies: List<String> = listOf(CurrencyRepository.BASE_CURRENCY),
-    val editing: Payment? = null,
+    var editing: Payment? = null,
     val isLoading: Boolean = false,
     val notLoggedIn: Boolean = false,
     val formVersion: Int = 0

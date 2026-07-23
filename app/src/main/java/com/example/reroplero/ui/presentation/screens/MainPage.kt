@@ -27,10 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +35,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.launch
 
@@ -52,7 +48,7 @@ class MainPage : ComponentActivity() {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
                 val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
-                var editing by remember { mutableStateOf<Payment?>(null)}
+//                var editing by remember { mutableStateOf<Payment?>(null)}
                 val focusManager = LocalFocusManager.current
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.currentPage }.collect {
@@ -74,8 +70,7 @@ class MainPage : ComponentActivity() {
                                     }else {
                                         NavigationBarItem(
                                             selected = pagerState.currentPage == index,
-                                            onClick = { if (t == Tab.TRANSACTION) editing = null
-                                                      scope.launch { pagerState.animateScrollToPage(index) }},
+                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) }},
                                             icon = { Icon(t.icon, contentDescription = t.label) },
                                             label = { Text(t.label) },
                                         )
@@ -86,7 +81,7 @@ class MainPage : ComponentActivity() {
                             val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
                             FloatingActionButton(
                                 onClick = {
-                                    editing = null
+                                    state.editing = null
                                     scope.launch {
                                         pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
                                     }
@@ -120,10 +115,9 @@ class MainPage : ComponentActivity() {
                             Tab.ANALYTICS -> AnalyticsScreen(state.payments)
                             Tab.TRANSACTION -> NewtransScreen(
                                 viewModel,
-                                editing = editing,
-                                onLeave = {editing = null},
+                                editing = state.editing,
+                                onLeave = { state.editing = null },
                                 onSaved = {
-//                                    scope.launch { total = state.total }
                                     scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
                                 },
                                 state = state
@@ -131,13 +125,8 @@ class MainPage : ComponentActivity() {
 
                             Tab.TRANSLIST -> TransListScreen(
                                 viewModel, onEdit = { payment ->
-                                    editing = payment
+                                    state.editing = payment
                                     scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
-                                },
-                                onChanged = {
-                                    scope.launch {
-//                                        total = state.total TODO fix this
-                                    }
                                 }
                             )
 
