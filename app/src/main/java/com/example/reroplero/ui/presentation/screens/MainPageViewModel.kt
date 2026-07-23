@@ -50,8 +50,9 @@ class MainPageViewModel(private val context: Context): ViewModel() {
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
+        _state.update { it.copy(payments = payments, total = total, isLoading = false) }
         val currencies = apiRepo.availableCurrencies()
-        _state.update { it.copy(payments = payments, total = total, currencies = currencies, isLoading = false) }
+        _state.update { it.copy(currencies = currencies) }
     }
 
     private fun save(intent: MainIntent.SavePayment) = viewModelScope.launch {
@@ -96,27 +97,6 @@ class MainPageViewModel(private val context: Context): ViewModel() {
                 _effects.send(MainEffect.ShowError("Couldn't delete"))
             }
         }
-    }
-
-    suspend fun addPay(payment: Payment): Boolean {
-        return globStore.addPayment(payment)
-    }
-
-    suspend fun getPay(): List<Payment> {
-        val user = getCurrentUser() ?: return emptyList()
-        return globStore.getPayments(user)
-    }
-
-    suspend fun getCurrentMoney(): Double? {
-        return userRepo.currentMoney(getCurrentUser() ?: return -1.0)
-    }
-
-    suspend fun delPay(payment: Payment) {
-        globStore.deletePayment(payment)
-    }
-
-    suspend fun getCurrentUser(): String? {
-        return session.currentUser()
     }
 
 }

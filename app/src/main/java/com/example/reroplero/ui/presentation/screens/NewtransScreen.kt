@@ -83,6 +83,7 @@ fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Pa
                               currency = selectedCurrency
                             )
                           )
+                        onSaved()
                     },
                     currencies = state.currencies
                 )
