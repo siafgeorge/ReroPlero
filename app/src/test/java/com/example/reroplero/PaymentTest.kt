@@ -1,7 +1,7 @@
 package com.example.reroplero
 
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.ui.presentation.checkDouble
+import com.example.reroplero.ui.presentation.screens.checkDouble
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
 import org.junit.Test

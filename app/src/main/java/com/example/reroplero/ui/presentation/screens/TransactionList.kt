@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,31 +25,31 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.data.local.models.Payment
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onChanged: () -> Job) {
-    var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
+fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
+//    var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { payments = viewModel.getPay() }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
-    if (payments.isEmpty()) {
+    //TODO check if this is correct
+//    LaunchedEffect(Unit) { payments = state.payments }
+
+    if (state.payments.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No transactions yet")
         }
@@ -61,15 +61,14 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onC
         contentPadding = PaddingValues(16.dp), //TODO move this value to the constants.
         verticalArrangement = Arrangement.spacedBy(12.dp) //TODO same here.
     ) {
-        items(payments, key = {it.id}) { payment ->
+        items(state.payments, key = {it.id}) { payment ->
             SwipeablePaymentCard(
                 payment = payment,
                 onEdit = { onEdit(payment) },
                 onDelete = {
-                    payments = payments.filterNot { it.id == payment.id }
+//                    payments = state.payments.filterNot { it.id == payment.id }
                     scope.launch {
-                        viewModel.delPay(payment)
-                        onChanged()
+                        viewModel.onIntent(MainIntent.DeletePayment(payment))
                     }
                 })
         }
@@ -157,9 +156,3 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
     }
 
 }
-
-
-//fun checkDouble(num: Double?): Double?{
-//    if (num != null && num > 0.0) return num
-//    return null
-//}

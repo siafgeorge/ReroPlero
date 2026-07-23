@@ -1,4 +1,4 @@
-package com.example.reroplero.ui.presentation
+package com.example.reroplero.ui.presentation.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,6 @@ fun Homescreen(
     ){
         Text("HELLO $username !")
         Spacer(Modifier.height(12.dp))
-        Text("Your money are minus $total")
+        Text("Your balance is: -$${String.format("%.2f", total)}")
     }
 }
