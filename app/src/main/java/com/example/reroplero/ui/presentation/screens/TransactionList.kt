@@ -42,12 +42,8 @@ import java.util.Locale
 
 @Composable
 fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
-//    var payments by remember { mutableStateOf<List<Payment>>(emptyList()) }
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    //TODO check if this is correct
-//    LaunchedEffect(Unit) { payments = state.payments }
 
     if (state.payments.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -58,15 +54,14 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp), //TODO move this value to the constants.
-        verticalArrangement = Arrangement.spacedBy(12.dp) //TODO same here.
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(state.payments, key = {it.id}) { payment ->
             SwipeablePaymentCard(
                 payment = payment,
                 onEdit = { onEdit(payment) },
                 onDelete = {
-//                    payments = state.payments.filterNot { it.id == payment.id }
                     scope.launch {
                         viewModel.onIntent(MainIntent.DeletePayment(payment))
                     }

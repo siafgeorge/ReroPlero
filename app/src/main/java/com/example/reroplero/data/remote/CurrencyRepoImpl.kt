@@ -1,11 +1,14 @@
 package com.example.reroplero.data.remote
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 class CurrencyRepoImpl(
         private val api: FrankfurterApi = FrankfurterClient.api
     ) : CurrencyRepository {
 
-    override suspend fun availableCurrencies(): List<String> {
-        return try{
+    override suspend fun availableCurrencies(): List<String> = withContext(Dispatchers.IO){
+        return@withContext try{
             api.getCurrencies().keys.sorted()
         }catch (e : Exception){
             listOf(CurrencyRepository.BASE_CURRENCY)

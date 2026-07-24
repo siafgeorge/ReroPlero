@@ -12,8 +12,11 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 private val KEY_USER = stringPreferencesKey("current_username")
 
 class SessionStore(private val context: Context) {
-    suspend fun setCurrentUser(username: String){
-        context.dataStore.edit{it[KEY_USER] = username}
+    suspend fun setCurrentUser(username: String?){
+        context.dataStore.edit {
+            prefs -> if (username.isNullOrBlank()) prefs.remove(KEY_USER)
+                     else prefs[KEY_USER] = username
+        }
     }
 
     suspend fun currentUser() : String? {

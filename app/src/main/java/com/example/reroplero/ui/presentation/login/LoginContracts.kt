@@ -6,17 +6,24 @@ class LoginContracts {
         val password: String = "",
         val usernameErrorText: String? = null,
         val passwordErrorText: String? = null,
-        val isLoading: Boolean = false
+        val isLoading: Boolean = false,
+        val isLoggedIn: Boolean = false,
+        val usernameHint: String = "Username",
+        val passwordHint: String = "Password",
+        val registerUser: String = "Register User"
     )
 
     sealed interface LoginActions {
         data class OnUsernameChange(val username: String) : LoginActions
         data class OnPasswordChange(val password: String) : LoginActions
+
+        data class OnRegister(val username: String, val password: String) : LoginActions
         data object Login : LoginActions
+        data object Logout : LoginActions
     }
 
-    sealed interface LoginEffect{
-        data object GoToMain : LoginEffect
+    sealed interface LoginEffect {
+        data class ShowMessage(val text: String) : LoginEffect
     }
 
     class Mutation(val state: LoginState) {
@@ -33,5 +40,12 @@ class LoginContracts {
             return Mutation(state.copy(isLoading = loading))
         }
 
+        fun onLoggedIn() : Mutation {
+            return Mutation(state.copy(isLoggedIn = true))
+        }
+
+        fun onLoggedOut() : Mutation {
+            return Mutation(state.copy(isLoggedIn = false))
+        }
     }
 }

@@ -35,6 +35,12 @@ class LoginVewModel(private val context: Context) : ViewModel() {
             is LoginContracts.LoginActions.Login -> {
                 login()
             }
+            is LoginContracts.LoginActions.OnRegister -> {
+                register()
+            }
+            is LoginContracts.LoginActions.Logout -> {
+                logout()
+            }
         }
     }
 
@@ -55,12 +61,40 @@ class LoginVewModel(private val context: Context) : ViewModel() {
         _state.update { LoginContracts.Mutation(it).onLoading(false).state }
         if (ok) {
             session.setCurrentUser(s.username)
-            _effects.send(LoginContracts.LoginEffect.GoToMain)
+            _state.update{
+                LoginContracts.Mutation(it).onLoggedIn().state
+            }
         } else {
-            _state.update { LoginContracts.Mutation(it).onValidateInput(null, "Wrong username or password").state }
+            _state.update {
+                LoginContracts.Mutation(it).onValidateInput(null, "Wrong username or password").state
+            }
         }
-
     }
 
+    private fun register() = viewModelScope.launch {
+        val s = _state.value
+        val usernameError = if (s.username.isBlank()) "Username Required" else null
+        val passwordError = if (s.password.isBlank()) "Password Required" else null
 
+        if (usernameError != null || passwordError != null){
+            _state.update {
+                LoginContracts.Mutation(it).onValidateInput(usernameError, passwordError).state
+            }
+            return@launch
+        }
+
+        val ok = userRepo.register(s.username, s.password)
+        if (ok) {
+            _effects.send(LoginContracts.LoginEffect.ShowMessage("Register Successful"))
+        }else{
+            _effects.send(LoginContracts.LoginEffect.ShowMessage("User already exists"))
+        }
+    }
+
+    private fun logout() = viewModelScope.launch {
+        session.setCurrentUser(null)
+        _state.update {
+            LoginContracts.Mutation(it).onLoggedOut().state
+        }
+    }
 }

@@ -25,10 +25,12 @@ sealed interface MainIntent {
     data class DeletePayment(val payment: Payment) : MainIntent
     data class StartEditing(val payment: Payment) : MainIntent
     data object StopEditing : MainIntent
+    data object Logout : MainIntent
 }
 
 sealed interface MainEffect {
     data object GoToList : MainEffect
-    data object Finish : MainEffect
     data class ShowError(val message : String) : MainEffect
+
+    data object GoToLogin : MainEffect
 }

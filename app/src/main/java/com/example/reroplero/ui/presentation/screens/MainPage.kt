@@ -1,7 +1,10 @@
 package com.example.reroplero.ui.presentation.screens
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +30,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.reroplero.ui.presentation.login.LoginPage
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import kotlinx.coroutines.launch
 
@@ -48,11 +55,34 @@ class MainPage : ComponentActivity() {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
                 val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
-//                var editing by remember { mutableStateOf<Payment?>(null)}
                 val focusManager = LocalFocusManager.current
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.currentPage }.collect {
                         focusManager.clearFocus()
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    viewModel.effects.collect { effect ->
+                        when (effect) {
+                            MainEffect.GoToLogin -> {
+                                startActivity(Intent(this@MainPage, LoginPage::class.java))
+                                finish()
+                            }
+                            MainEffect.GoToList -> pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal)
+                            is MainEffect.ShowError ->
+                                Toast.makeText(this@MainPage, effect.message, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                var lastBackPress by remember { mutableLongStateOf(0L) }
+                BackHandler {
+                    val now = System.currentTimeMillis()
+                    if (now - lastBackPress < 2000) {
+                        finish()
+                    }else {
+                        lastBackPress = now
+                        Toast.makeText(this@MainPage, "Press back again to exit", Toast.LENGTH_SHORT).show()
                     }
                 }
 
@@ -110,6 +140,9 @@ class MainPage : ComponentActivity() {
                             Tab.HOME -> Homescreen(
                                 username = state.username,
                                 total = state.total,
+                                onLogout = {
+                                    viewModel.onIntent(MainIntent.Logout)
+                                }
                             )
 
                             Tab.ANALYTICS -> AnalyticsScreen(state.payments)

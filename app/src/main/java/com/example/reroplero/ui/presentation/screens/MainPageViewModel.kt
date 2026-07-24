@@ -41,12 +41,13 @@ class MainPageViewModel(private val context: Context): ViewModel() {
             is MainIntent.DeletePayment -> delete(intent.payment)
             is MainIntent.StartEditing -> _state.update { it.copy(editing = intent.payment) }
             MainIntent.StopEditing -> _state.update { it.copy(editing = null) }
+            MainIntent.Logout -> logout()
         }
     }
 
     private fun load() = viewModelScope.launch {
         val user = session.currentUser()
-        if (user == null) { _effects.send(MainEffect.Finish); return@launch }
+        if (user == null) { _effects.send(MainEffect.GoToLogin); return@launch }
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
@@ -97,6 +98,11 @@ class MainPageViewModel(private val context: Context): ViewModel() {
                 _effects.send(MainEffect.ShowError("Couldn't delete"))
             }
         }
+    }
+
+    private fun logout() = viewModelScope.launch{
+        session.clear()
+        _effects.send(MainEffect.GoToLogin)
     }
 
 }
