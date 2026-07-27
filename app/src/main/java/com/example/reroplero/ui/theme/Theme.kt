@@ -1,6 +1,7 @@
 package com.example.reroplero.ui.theme
 
 import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -44,25 +45,40 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = AppGreen,
+    onPrimary = OnAppGreen,
+    secondary = AppGreen,
+    onSecondary = OnAppGreen,
+    tertiary = AppGreen,
+    onTertiary = OnAppGreen,
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = AppGreen,
+    onTertiaryContainer = OnAppGreen,
+
+    background = AppBackgroundLight,
+    onBackground = AppOnLight,
+
+    surface = AppBackgroundLight,
+    onSurface = AppOnLight,
+
+    surfaceVariant = AppSurfaceLight,
+    onSurfaceVariant = AppOnLightMuted,
+    surfaceContainer = AppSurfaceLight,
+    surfaceContainerLow = AppSurfaceLight,
+    surfaceContainerHigh = AppSurfaceHighLight,
+    surfaceContainerHighest = AppSurfaceHighLight,
+
+    secondaryContainer = AppGreen,
+    onSecondaryContainer = OnAppGreen,
+
+    outline = AppOutlineLight,
+    outlineVariant = AppOutlineLight
 )
 
 @Composable
 fun ReroPleroTheme(
     // ReroPlero is a dark-only app: its palette is dark whatever the system says.
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color would let the user's wallpaper override the palette below.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

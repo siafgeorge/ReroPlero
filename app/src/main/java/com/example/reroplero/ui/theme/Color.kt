@@ -19,3 +19,11 @@ val OnAppGreen = Color(0xFF06280A)
 val AppOnDark = Color(0xFFE6E6EA)
 val AppOnDarkMuted = Color(0xFFB4B4C4)
 val AppOutline = Color(0xFF5A5A6E)
+
+
+val AppBackgroundLight = Color(0xFFF5F5FB)
+val AppSurfaceLight = Color(0xFFFFFFFF)
+val AppSurfaceHighLight = Color(0xFFE7E7F0)
+val AppOnLight = Color(0xFF1C1B22)
+val AppOnLightMuted = Color(0xFF5C5C6E)
+val AppOutlineLight = Color(0xFFC6C6D2)
