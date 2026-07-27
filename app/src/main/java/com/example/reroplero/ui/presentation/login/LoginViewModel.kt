@@ -1,10 +1,10 @@
 package com.example.reroplero.ui.presentation.login
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reroplero.data.SessionStore
-import com.example.reroplero.data.UserRepoImpl
+import com.example.reroplero.data.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,10 +12,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginVewModel(private val context: Context) : ViewModel() {
-    private val userRepo = UserRepoImpl(context)
-    private val session = SessionStore(context)
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val userRepo: UserRepository,
+    private val session: SessionStore
+    ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginContracts.LoginState())
 

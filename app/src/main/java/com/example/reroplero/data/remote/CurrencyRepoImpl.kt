@@ -2,9 +2,10 @@ package com.example.reroplero.data.remote
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class CurrencyRepoImpl(
-        private val api: FrankfurterApi = FrankfurterClient.api
+class CurrencyRepoImpl @Inject constructor(
+        private val api: FrankfurterApi
     ) : CurrencyRepository {
 
     override suspend fun availableCurrencies(): List<String> = withContext(Dispatchers.IO){

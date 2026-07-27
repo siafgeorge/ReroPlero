@@ -1,13 +1,14 @@
 package com.example.reroplero.data
 
-import android.content.Context
-import com.example.reroplero.data.local.AppDatabase
+import com.example.reroplero.data.local.AppDao
 import com.example.reroplero.data.local.models.Payment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class PaymentRepoImpl(private val context: Context) : PaymentRepository {
-    private val dao = AppDatabase.getInstance(context).dao()
+class PaymentRepoImpl @Inject constructor(
+    private val dao: AppDao
+    ) : PaymentRepository {
 
     override suspend fun addPayment(payment: Payment) : Boolean = withContext(Dispatchers.IO) {
         return@withContext dao.insertPayment(payment) != -1L

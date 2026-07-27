@@ -1,14 +1,14 @@
 package com.example.reroplero.ui.presentation.screens
 
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.reroplero.data.PaymentRepoImpl
+import com.example.reroplero.data.PaymentRepository
 import com.example.reroplero.data.SessionStore
-import com.example.reroplero.data.UserRepoImpl
+import com.example.reroplero.data.UserRepository
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.remote.CurrencyRepoImpl
+import com.example.reroplero.data.remote.CurrencyRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,14 +17,16 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
-class MainPageViewModel(private val context: Context): ViewModel() {
+@HiltViewModel
+class MainPageViewModel @Inject constructor(
+    private val userRepo: UserRepository,
+    private val session: SessionStore,
+    private val globStore: PaymentRepository,
+    private val apiRepo: CurrencyRepository
+    ): ViewModel() {
 
-    private val session: SessionStore = SessionStore(context)
-    private val globStore = PaymentRepoImpl(context)
-    private val userRepo = UserRepoImpl(context)
-
-    private val apiRepo = CurrencyRepoImpl()
 
     private val _effects = Channel<MainEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()

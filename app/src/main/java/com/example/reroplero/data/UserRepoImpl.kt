@@ -1,13 +1,14 @@
 package com.example.reroplero.data
 
-import android.content.Context
-import com.example.reroplero.data.local.AppDatabase
+import com.example.reroplero.data.local.AppDao
 import com.example.reroplero.data.local.models.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class UserRepoImpl(private val context: Context) : UserRepository {
-    private val dao = AppDatabase.getInstance(context).dao()
+class UserRepoImpl @Inject constructor(
+    private val dao: AppDao
+    ) : UserRepository {
     override suspend fun register(username: String, password: String): Boolean = withContext(Dispatchers.IO) {
         if (username.isBlank() || password.isBlank()) return@withContext false
         if (userExists(username)) return@withContext false

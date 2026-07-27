@@ -8,10 +8,16 @@ script force-stops it first.
     python3 tools/seed_payments.py --user stouris --count 40
 
 Run with no arguments to see the users and payment counts already in the DB.
+Delete a user (and all their payments) with:
+
+    python3 tools/seed_payments.py --remove-user stouris
+
+On Windows, use `python` instead of `python3`. Needs Python 3.10+.
 """
 
 import argparse
 import calendar
+import os
 import random
 import shutil
 import sqlite3
@@ -35,40 +41,105 @@ COST_RANGES = {
     "Fun": (10, 120),
 }
 
-ADB = shutil.which("adb") or str(Path.home() / "Android/Sdk/platform-tools/adb")
 REMOTE_DIR = f"/data/data/{PACKAGE}/databases"
 DB_FILES = [DB_NAME, f"{DB_NAME}-wal", f"{DB_NAME}-shm"]
 
 
-def adb(*args, binary=False):
+def find_adb():
+    """Locate adb: PATH first, then the usual SDK location per platform."""
+    found = shutil.which("adb")
+    if found:
+        return found
+
+    exe = "adb.exe" if os.name == "nt" else "adb"
+    roots = [
+        Path(os.environ[var])
+        for var in ("ANDROID_SDK_ROOT", "ANDROID_HOME")
+        if os.environ.get(var)
+    ]
+    if os.name == "nt":
+        if os.environ.get("LOCALAPPDATA"):
+            roots.append(Path(os.environ["LOCALAPPDATA"]) / "Android" / "Sdk")
+    else:
+        roots.append(Path.home() / "Android" / "Sdk")
+        roots.append(Path.home() / "Library" / "Android" / "sdk")  # macOS
+
+    for root in roots:
+        candidate = root / "platform-tools" / exe
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
+ADB = find_adb()
+
+
+def _run(args):
+    if ADB is None:
+        sys.exit(
+            "Couldn't find adb. Add platform-tools to your PATH, or set "
+            "ANDROID_SDK_ROOT to your SDK folder."
+        )
+    return subprocess.run([ADB, *args], capture_output=True, check=False)
+
+
+def adb(*args):
     """Run an adb command, returning stdout."""
-    result = subprocess.run(
-        [ADB, *args], capture_output=True, check=False
-    )
+    result = _run(args)
     if result.returncode != 0:
         stderr = result.stderr.decode(errors="replace").strip()
         sys.exit(f"adb {' '.join(args)} failed: {stderr}")
-    return result.stdout if binary else result.stdout.decode(errors="replace")
+    return result.stdout.decode(errors="replace")
+
+
+def adb_ok(*args):
+    """Run an adb command, returning whether it succeeded. For probes."""
+    return _run(args).returncode == 0
 
 
 def check_device():
-    lines = [l for l in adb("devices").splitlines()[1:] if l.strip()]
+    """Count attached devices.
+
+    Only lines shaped like "<serial>\\t<state>" count — on Windows the first
+    adb call often prints "* daemon not running; starting now ..." to stdout,
+    and a naive splitlines()[1:] would count that as an extra device.
+    """
+    lines = [
+        l
+        for l in adb("devices").splitlines()[1:]
+        if "\t" in l and l.split("\t")[1].strip() == "device"
+    ]
     if not lines:
         sys.exit("No device found. Start your emulator and try again.")
     if len(lines) > 1:
-        sys.exit(f"Multiple devices attached; disconnect all but one:\n" + "\n".join(lines))
+        sys.exit("Multiple devices attached; disconnect all but one:\n" + "\n".join(lines))
 
 
 def pull_db(workdir):
     """Copy the DB and its WAL sidecars off the device.
 
-    exec-out (not shell) keeps the byte stream raw — `adb shell` can mangle
-    binary data. The -wal file matters: recent writes live there, not in the
-    main file, so pulling only the DB would silently lose them.
+    Staged through /data/local/tmp rather than streamed with `exec-out cat`:
+    on Windows adb's stdout goes through the C runtime's text mode, which can
+    expand 0x0A bytes to 0x0D 0x0A and quietly corrupt a SQLite file. `adb
+    pull` is a framed file transfer, so it stays byte-exact everywhere.
+
+    The `>` runs on the *shell* side on purpose. /data/local/tmp is 0771
+    root:shell, so the app UID that run-as drops to can't create files there;
+    the device shell opens the file, and run-as just inherits the fd. It has
+    to be one argument, or Windows quoting and adb's arg-joining mangle it.
+
+    The -wal file matters: recent writes live there, not in the main file. But
+    it can legitimately be absent if SQLite checkpointed on shutdown, so a
+    missing sidecar is skipped instead of being treated as an error.
     """
     for name in DB_FILES:
-        data = adb("exec-out", "run-as", PACKAGE, "cat", f"{REMOTE_DIR}/{name}", binary=True)
-        (workdir / name).write_bytes(data)
+        remote = f"{REMOTE_DIR}/{name}"
+        if not adb_ok("shell", "run-as", PACKAGE, "test", "-f", remote):
+            continue
+        staged = f"/data/local/tmp/{name}"
+        adb("shell", f"run-as {PACKAGE} cat {remote} > {staged}")
+        adb("pull", staged, str(workdir / name))
+        adb("shell", "rm", "-f", staged)
 
 
 def push_db(workdir):
@@ -95,11 +166,28 @@ def show_users(db_path):
         "GROUP BY u.username ORDER BY u.username"
     ).fetchall()
     conn.close()
+    if not rows:
+        print("No users in the database yet — register one in the app first.")
+        return
     print("Users in the database (payments each):")
     for username, count in rows:
         print(f"  {username:<12} {count}")
     print("\nPick one with --user, e.g.:")
     print(f"  python3 tools/seed_payments.py --user {rows[0][0]} --count 40")
+
+
+def remove_user(conn, username):
+    """Delete a user and every payment attached to them.
+
+    Payments reference the username, so they must go first — otherwise
+    they'd be orphaned rows pointing at a user that no longer exists.
+    Returns how many payments were removed.
+    """
+    payments = conn.execute(
+        "DELETE FROM payments WHERE username = ?", (username,)
+    ).rowcount
+    conn.execute("DELETE FROM users WHERE username = ?", (username,))
+    return payments
 
 
 def random_payments(username, count, seed=None):
@@ -147,17 +235,55 @@ def main():
         action="store_true",
         help="delete this user's existing payments first",
     )
+    parser.add_argument(
+        "--remove-user",
+        metavar="USERNAME",
+        help="delete a user and all their payments, then exit",
+    )
     args = parser.parse_args()
 
     check_device()
     print(f"Stopping {PACKAGE} so it releases the database...")
     adb("shell", "am", "force-stop", PACKAGE)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    # ignore_cleanup_errors: Windows won't delete a directory that still holds
+    # an open file, so a mid-flight exception would otherwise be masked by a
+    # PermissionError from the cleanup.
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         workdir = Path(tmpdir)
         print("Pulling database...")
         pull_db(workdir)
         db_path = workdir / DB_NAME
+
+        if args.remove_user:
+            conn = sqlite3.connect(db_path)
+            exists = conn.execute(
+                "SELECT 1 FROM users WHERE username = ?", (args.remove_user,)
+            ).fetchone()
+            if not exists:
+                conn.close()
+                sys.exit(
+                    f"No user named {args.remove_user!r}. Run with no arguments to list them."
+                )
+            count = conn.execute(
+                "SELECT COUNT(*) FROM payments WHERE username = ?", (args.remove_user,)
+            ).fetchone()[0]
+            answer = input(
+                f"Delete user {args.remove_user!r} and their {count} payments? [y/N] "
+            )
+            if answer.strip().lower() not in ("y", "yes"):
+                conn.close()
+                print("Aborted; database left unchanged.")
+                return
+            removed = remove_user(conn, args.remove_user)
+            conn.commit()
+            # Fold the WAL into the main file so pushing that one file is enough.
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.close()
+            print(f"Removed {args.remove_user} and {removed} payments.")
+            print("Pushing database back...")
+            push_db(workdir)
+            return
 
         if not args.user:
             show_users(db_path)
