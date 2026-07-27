@@ -46,7 +46,7 @@ object DataModule {
     @Singleton
     fun provideFrankfurterApi(): FrankfurterApi =
         Retrofit.Builder()
-            .baseUrl("https://api.frankfurter.dev/")
+            .baseUrl("https://api.frankfurter.dev/") //TODO make this link constant.
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(FrankfurterApi::class.java)
