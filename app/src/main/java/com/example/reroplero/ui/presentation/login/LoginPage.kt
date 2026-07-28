@@ -26,7 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -125,8 +124,7 @@ fun LoginFields(viewModel: LoginViewModel) {
 
     Text(
         text = state.registerUser,
-        color = Color.White,
-        fontSize = 12.sp,
+        fontSize = 14.sp,
         modifier = Modifier.clickable {
             viewModel.onAction(LoginContracts.LoginActions.OnRegister(state.username, state.password))
         }

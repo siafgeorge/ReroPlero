@@ -154,9 +154,6 @@ class MainPage : ComponentActivity() {
                                 viewModel,
                                 editing = state.editing,
                                 onLeave = { state.editing = null },
-                                onSaved = {
-                                    scope.launch { pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal) }
-                                },
                                 state = state
                             )
 

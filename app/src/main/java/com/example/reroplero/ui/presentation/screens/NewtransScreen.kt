@@ -55,7 +55,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
+fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Payment? = null, onLeave: () -> Unit) {
     DisposableEffect(Unit) {
         onDispose { onLeave() }
     }
@@ -87,7 +87,6 @@ fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Pa
                               currency = selectedCurrency
                             )
                           )
-                        onSaved()
                     },
                     currencies = state.currencies
                 )
