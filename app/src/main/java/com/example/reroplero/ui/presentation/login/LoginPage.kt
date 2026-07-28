@@ -8,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.R
 import com.example.reroplero.ui.presentation.screens.MainPage
+import com.example.reroplero.ui.theme.ReroPleroTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -47,34 +48,37 @@ class LoginPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val focusManager = LocalFocusManager.current
-            Column (
-                modifier = Modifier.fillMaxSize()
-                    .background(Color(getColor(R.color.mybackground)))
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = { focusManager.clearFocus() })
+            ReroPleroTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    val focusManager = LocalFocusManager.current
+                    Column (
+                        modifier = Modifier.fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = { focusManager.clearFocus() })
+                            }
+                            .padding(43.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Image(
+                            painter = painterResource(id = R.drawable.logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(120.dp)
+                                .padding(top = 32.dp)
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+                        ){
+                            LoginFields(viewModel)
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
+                        Spacer(modifier = Modifier.weight(2f))
                     }
-                    .padding(43.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(120.dp)
-                        .padding(top = 32.dp)
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-                ){
-                    LoginFields(viewModel)
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
-                Spacer(modifier = Modifier.weight(2f))
             }
         }
     }
