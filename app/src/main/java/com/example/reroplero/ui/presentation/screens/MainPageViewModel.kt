@@ -44,6 +44,17 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.StartEditing -> _state.update { it.copy(editing = intent.payment) }
             MainIntent.StopEditing -> _state.update { it.copy(editing = null) }
             MainIntent.Logout -> logout()
+            MainIntent.RefreshCurrencies -> refreshCurrencies()
+        }
+    }
+
+    private fun refreshCurrencies() = viewModelScope.launch {
+        if (state.value.currencies.size > 1) {
+            return@launch
+        }
+        val currencies = apiRepo.availableCurrencies()
+        if (currencies.size > 1) {
+            _state.update{it.copy(currencies=currencies)}
         }
     }
 
@@ -54,8 +65,7 @@ class MainPageViewModel @Inject constructor(
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
         _state.update { it.copy(payments = payments, total = total, isLoading = false) }
-        val currencies = apiRepo.availableCurrencies()
-        _state.update { it.copy(currencies = currencies) }
+        refreshCurrencies()
     }
 
     private fun save(intent: MainIntent.SavePayment) = viewModelScope.launch {

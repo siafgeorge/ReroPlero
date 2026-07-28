@@ -32,6 +32,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,6 +58,9 @@ import java.util.Locale
 fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Payment? = null, onLeave: () -> Unit, onSaved: () -> Unit) {
     DisposableEffect(Unit) {
         onDispose { onLeave() }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.onIntent(MainIntent.RefreshCurrencies)
     }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current

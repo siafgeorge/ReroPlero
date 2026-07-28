@@ -26,6 +26,7 @@ sealed interface MainIntent {
     data class StartEditing(val payment: Payment) : MainIntent
     data object StopEditing : MainIntent
     data object Logout : MainIntent
+    data object RefreshCurrencies : MainIntent
 }
 
 sealed interface MainEffect {
