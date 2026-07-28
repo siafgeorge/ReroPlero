@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -23,11 +24,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +56,9 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
         return
     }
 
+    var shouldDeleteDialog by remember{ mutableStateOf(false) }
+    var curPayment by remember{mutableStateOf<Payment?>(null)}
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -62,11 +69,36 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
                 payment = payment,
                 onEdit = { onEdit(payment) },
                 onDelete = {
-                    scope.launch {
-                        viewModel.onIntent(MainIntent.DeletePayment(payment))
-                    }
+                    shouldDeleteDialog = true
+                    curPayment = payment
                 })
         }
+    }
+    if (shouldDeleteDialog){
+        AlertDialog(
+            onDismissRequest = { shouldDeleteDialog = false},
+            title = { Text("Delete Payment ?") },
+            text = { Text("Are you sure that you want to delete this payment ?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    shouldDeleteDialog = false
+                    curPayment?.let {
+                        scope.launch {
+                            viewModel.onIntent(MainIntent.DeletePayment(curPayment!!))
+                        }
+                    }
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    shouldDeleteDialog = false
+                }) {
+                    Text("No")
+                }
+            }
+        )
     }
 }
 
@@ -111,7 +143,7 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
             when (value) {
                 SwipeToDismissBoxValue.EndToStart -> {
                     onDelete()
-                    true
+                    false
                 }
                 SwipeToDismissBoxValue.StartToEnd -> {
                     onEdit()
