@@ -9,6 +9,7 @@ import androidx.room.Room
 import com.example.reroplero.R
 import com.example.reroplero.data.local.AppDao
 import com.example.reroplero.data.local.AppDatabase
+import com.example.reroplero.data.remote.CoinGeckoApi
 import com.example.reroplero.data.remote.FrankfurterApi
 import dagger.Module
 import dagger.Provides
@@ -51,4 +52,12 @@ object DataModule {
             .build()
             .create(FrankfurterApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideCoinGeckoApi(): CoinGeckoApi =
+        Retrofit.Builder()
+            .baseUrl("https://api.coingecko.com/") //TODO make this constant too
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(CoinGeckoApi::class.java)
 }

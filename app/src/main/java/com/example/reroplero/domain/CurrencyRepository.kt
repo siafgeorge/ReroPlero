@@ -1,4 +1,4 @@
-package com.example.reroplero.data.remote
+package com.example.reroplero.domain
 
 interface CurrencyRepository {
     companion object{

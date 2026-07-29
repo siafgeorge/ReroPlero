@@ -2,8 +2,8 @@ package com.example.reroplero.ui.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.reroplero.data.SessionStore
-import com.example.reroplero.data.UserRepository
+import com.example.reroplero.domain.SessionRepository
+import com.example.reroplero.domain.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val userRepo: UserRepository,
-    private val session: SessionStore
+    private val session: SessionRepository
     ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginContracts.LoginState())

@@ -1,35 +1,36 @@
 package com.example.reroplero.data
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.example.reroplero.domain.SessionRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "session")
+
+//private val Context.dataStore: DataStore<androidx.datastore.preferences.core.Preferences> by preferencesDataStore(name = "session")
 private val KEY_USER = stringPreferencesKey("current_username")
 
+
 @Singleton
-class SessionStore @Inject constructor(
+class SessionRepoImpl @Inject constructor(
     private val dataStore: DataStore<Preferences>
-    ) {
-    suspend fun setCurrentUser(username: String?){
+) : SessionRepository {
+
+    override suspend fun setCurrentUser(username: String?){
         dataStore.edit {
-            prefs -> if (username.isNullOrBlank()) prefs.remove(KEY_USER)
-                     else prefs[KEY_USER] = username
+                prefs -> if (username.isNullOrBlank()) prefs.remove(KEY_USER)
+        else prefs[KEY_USER] = username
         }
     }
 
-    suspend fun currentUser() : String? {
+    override suspend fun currentUser() : String? {
         return dataStore.data.first()[KEY_USER]
     }
 
-    suspend fun clear() {
+    override suspend fun clear() {
         dataStore.edit{ it.remove(KEY_USER) }
     }
-
 }

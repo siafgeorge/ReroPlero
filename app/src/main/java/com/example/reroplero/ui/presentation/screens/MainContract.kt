@@ -1,7 +1,7 @@
 package com.example.reroplero.ui.presentation.screens
 
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.remote.CurrencyRepository
+import com.example.reroplero.domain.CurrencyRepository
 
 data class MainUiState(
     val username: String = "",
@@ -11,7 +11,8 @@ data class MainUiState(
     var editing: Payment? = null,
     val isLoading: Boolean = false,
     val notLoggedIn: Boolean = false,
-    val formVersion: Int = 0
+    val formVersion: Int = 0,
+    val showLogoutDialog: Boolean = false
 )
 
 sealed interface MainIntent {
@@ -27,6 +28,8 @@ sealed interface MainIntent {
     data object StopEditing : MainIntent
     data object Logout : MainIntent
     data object RefreshCurrencies : MainIntent
+
+    data class SetLogoutDialog(val visible: Boolean) : MainIntent
 }
 
 sealed interface MainEffect {

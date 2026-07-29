@@ -13,12 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,11 +20,12 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun Homescreen(
+    state: MainUiState,
     username: String,
     total: Double,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onSetLogoutDialog: (Boolean) -> Unit
 ){
-    var showLogoutDialog by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()){
 
         Column(
@@ -43,7 +38,7 @@ fun Homescreen(
             Text("Your balance is: -$${String.format("%.2f", total)}")
         }
         Button(
-            onClick = { showLogoutDialog = true },
+            onClick = { onSetLogoutDialog(true) },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Red,
                 contentColor = Color.White
@@ -54,20 +49,20 @@ fun Homescreen(
             {
                 Text("Logout")
             }
-        if (showLogoutDialog) {
+        if (state.showLogoutDialog) {
             AlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
+                onDismissRequest = { onSetLogoutDialog(false) },
                 title = { Text("Log out") },
                 text = { Text("Are you sure you want to log out ?") },
                 confirmButton = {
                     TextButton(onClick = {
-                        showLogoutDialog = false
+                        onSetLogoutDialog(false)
                         onLogout()
                     }) {Text("Yes")}
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        showLogoutDialog = false
+                        onSetLogoutDialog(false)
                     }) { Text("No") }
                 }
             )

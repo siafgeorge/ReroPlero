@@ -1,4 +1,4 @@
-package com.example.reroplero.data
+package com.example.reroplero.domain
 
 import com.example.reroplero.data.local.models.User
 

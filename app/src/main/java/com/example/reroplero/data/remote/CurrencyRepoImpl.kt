@@ -1,5 +1,6 @@
 package com.example.reroplero.data.remote
 
+import com.example.reroplero.domain.CurrencyRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject

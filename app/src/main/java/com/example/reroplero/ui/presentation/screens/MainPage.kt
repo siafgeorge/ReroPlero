@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainPage : ComponentActivity() {
     private val viewModel: MainPageViewModel by viewModels()
+    private val cryptoViewModel: CryptoViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +58,7 @@ class MainPage : ComponentActivity() {
             ReroPleroTheme {
                 val scope = rememberCoroutineScope()
                 val state by viewModel.state.collectAsStateWithLifecycle()
+                val cryptoState by cryptoViewModel.state.collectAsStateWithLifecycle()
 
                 val pagerState = rememberPagerState( pageCount = {Tab.entries.size} )
                 val focusManager = LocalFocusManager.current
@@ -142,10 +144,14 @@ class MainPage : ComponentActivity() {
                     ) { page ->
                         when (Tab.entries[page]) {
                             Tab.HOME -> Homescreen(
+                                state = state,
                                 username = state.username,
                                 total = state.total,
                                 onLogout = {
                                     viewModel.onIntent(MainIntent.Logout)
+                                },
+                                onSetLogoutDialog = {
+                                    visible -> viewModel.onIntent(MainIntent.SetLogoutDialog(visible))
                                 }
                             )
 
@@ -158,13 +164,27 @@ class MainPage : ComponentActivity() {
                             )
 
                             Tab.TRANSLIST -> TransListScreen(
-                                viewModel, onEdit = { payment ->
+                                viewModel,
+                                onEdit = { payment ->
                                     state.editing = payment
                                     scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
+                                },
+                                onFlingNext = {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(Tab.CRYPTO.ordinal)
+                                    }
+                                },
+                                onFlingPrev = {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
+                                    }
                                 }
                             )
 
-                            Tab.CRYPTO -> CryptoScreen()
+                            Tab.CRYPTO -> CryptoScreen(
+                                state = cryptoState,
+                                onRefresh = { cryptoViewModel.refresh() }
+                            )
                         }
                     }
                 }

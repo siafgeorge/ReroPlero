@@ -1,7 +1,7 @@
 package com.example.reroplero
 
-import com.example.reroplero.data.PaymentRepository
 import com.example.reroplero.data.local.models.Payment
+import com.example.reroplero.domain.PaymentRepository
 
 class FakePaymentRepository : PaymentRepository {
     val payments = mutableListOf<Payment>()

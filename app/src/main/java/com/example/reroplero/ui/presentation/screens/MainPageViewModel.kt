@@ -3,11 +3,11 @@ package com.example.reroplero.ui.presentation.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.reroplero.data.PaymentRepository
-import com.example.reroplero.data.SessionStore
-import com.example.reroplero.data.UserRepository
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.remote.CurrencyRepository
+import com.example.reroplero.domain.CurrencyRepository
+import com.example.reroplero.domain.PaymentRepository
+import com.example.reroplero.domain.SessionRepository
+import com.example.reroplero.domain.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainPageViewModel @Inject constructor(
     private val userRepo: UserRepository,
-    private val session: SessionStore,
+    private val session: SessionRepository,
     private val globStore: PaymentRepository,
     private val apiRepo: CurrencyRepository
     ): ViewModel() {
@@ -42,9 +42,10 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.SavePayment -> save(intent)
             is MainIntent.DeletePayment -> delete(intent.payment)
             is MainIntent.StartEditing -> _state.update { it.copy(editing = intent.payment) }
-            MainIntent.StopEditing -> _state.update { it.copy(editing = null) }
-            MainIntent.Logout -> logout()
-            MainIntent.RefreshCurrencies -> refreshCurrencies()
+            is MainIntent.StopEditing -> _state.update { it.copy(editing = null) }
+            is MainIntent.Logout -> logout()
+            is MainIntent.RefreshCurrencies -> refreshCurrencies()
+            is MainIntent.SetLogoutDialog -> _state.update { it.copy(showLogoutDialog = intent.visible) }
         }
     }
 
@@ -113,6 +114,7 @@ class MainPageViewModel @Inject constructor(
     }
 
     private fun logout() = viewModelScope.launch{
+        _state.update { it.copy(showLogoutDialog = false) }
         session.clear()
         _effects.send(MainEffect.GoToLogin)
     }

@@ -48,7 +48,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.local.models.Payment
-import com.example.reroplero.data.remote.CurrencyRepository
+import com.example.reroplero.domain.CurrencyRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date

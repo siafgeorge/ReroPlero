@@ -2,6 +2,7 @@ package com.example.reroplero.data
 
 import com.example.reroplero.data.local.AppDao
 import com.example.reroplero.data.local.models.User
+import com.example.reroplero.domain.UserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject

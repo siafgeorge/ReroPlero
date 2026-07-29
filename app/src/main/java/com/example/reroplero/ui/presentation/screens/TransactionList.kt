@@ -1,6 +1,8 @@
 package com.example.reroplero.ui.presentation.screens
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,11 +24,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.data.local.models.Payment
@@ -43,9 +48,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
-fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
+fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onFlingNext: () -> Unit, onFlingPrev: () -> Unit) {
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -71,9 +77,13 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
                 onDelete = {
                     shouldDeleteDialog = true
                     curPayment = payment
-                })
+                },
+                onFlingNext = onFlingNext,
+                onFlingPrev = onFlingPrev
+            )
         }
     }
+
     if (shouldDeleteDialog){
         AlertDialog(
             onDismissRequest = { shouldDeleteDialog = false},
@@ -101,7 +111,6 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit) {
         )
     }
 }
-
 
 @Composable
 fun PaymentCard(payment: Payment){
@@ -137,49 +146,57 @@ fun PaymentCard(payment: Payment){
 }
 
 @Composable
-fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onDelete()
-                    false
-                }
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    onEdit()
-                    false
-                }
-                else -> {
-                    false
-                }
-            }
-        }
-    )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = true,
-        backgroundContent = {
-            val isDelete = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CardDefaults.shape)
-                    .background(if (isDelete) MaterialTheme.colorScheme.errorContainer
-                    else MaterialTheme.colorScheme.primary
-                    )
-                    .padding(horizontal = 20.dp),
-                contentAlignment = if (isDelete) Alignment.CenterEnd else Alignment.CenterStart
-            ) {
-                Icon(
-                    if (isDelete) Icons.Filled.Delete else Icons.Filled.Edit,
-                    contentDescription = if (isDelete) "Delete" else "Edit",
-                    tint = if (isDelete) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) {
-        PaymentCard(payment)
-    }
+fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit, onFlingNext: () -> Unit, onFlingPrev: () -> Unit ) {
+    val scope = rememberCoroutineScope()
+    val offsetX = remember {Animatable(0f)}
 
+    val fastFling = 2000f
+    val actionDistance = with(LocalDensity.current) {80.dp.toPx()}
+
+    Box(modifier = Modifier.fillMaxWidth()){
+        val slidingLeft = offsetX.value < 0
+        Box(
+            modifier = Modifier.matchParentSize()
+                .clip(CardDefaults.shape)
+                .background(
+                    if (slidingLeft) MaterialTheme.colorScheme.errorContainer
+                    else MaterialTheme.colorScheme.primary
+                )
+                .padding(horizontal = 20.dp),
+                contentAlignment = if (slidingLeft) Alignment.CenterEnd else Alignment.CenterStart
+        ){
+            Icon(
+                if (slidingLeft) Icons.Filled.Delete else Icons.Filled.Edit,
+                contentDescription = if (slidingLeft) "Delete" else "Edit",
+                tint = if (slidingLeft) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimary
+            )
+        }
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(payment.id) {
+                    val tracker = VelocityTracker()
+                    detectHorizontalDragGestures(
+                        onDragStart = { tracker.resetTracking() },
+                        onDragEnd = {
+                            val velocity = tracker.calculateVelocity().x
+                            val distance = offsetX.value
+                            when {
+                                velocity <= -fastFling -> onFlingNext()
+                                velocity >= fastFling  -> onFlingPrev()
+                                distance <= -actionDistance -> onDelete()
+                                distance >= actionDistance  -> onEdit()
+                            }
+                            scope.launch { offsetX.animateTo(0f) }
+                        },
+                        onDragCancel = { scope.launch { offsetX.animateTo(0f) } }
+                    ) { change, dragAmount ->
+                        tracker.addPointerInputChange(change)
+                        scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
+                    }
+                }
+        ){
+            PaymentCard(payment)
+        }
+    }
 }
