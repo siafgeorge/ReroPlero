@@ -3,6 +3,14 @@ package com.example.reroplero.ui.presentation.screens
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
 
+
+data class AnalyticsStats(
+    val spentThisMonth: Double = 0.0,
+    val fixedThisMonth: Double = 0.0,
+    val variablePerDay: Double = 0.0,
+    val projectedTotal: Double? = null
+)
+
 data class MainUiState(
     val username: String = "",
     val total: Double = 0.0,
@@ -12,7 +20,8 @@ data class MainUiState(
     val isLoading: Boolean = false,
     val notLoggedIn: Boolean = false,
     val formVersion: Int = 0,
-    val showLogoutDialog: Boolean = false
+    val showLogoutDialog: Boolean = false,
+    val analytics: AnalyticsStats = AnalyticsStats()
 )
 
 sealed interface MainIntent {

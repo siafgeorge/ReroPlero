@@ -50,7 +50,9 @@ import androidx.compose.ui.unit.dp
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
 import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Date
 import java.util.Locale
 
@@ -97,7 +99,7 @@ fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Pa
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class) // used for calendar dialog
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: String, timeMillis: Long, selectedCurrency: String) -> Unit, currencies: List<String>) {
     val categories = listOf("Food", "Transport", "Rent", "Fun")
@@ -111,12 +113,15 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
     var selectedCategory by remember(editing) { mutableStateOf(editing?.category ?: categories.first()) }
     var cost by remember(editing) {  mutableStateOf(editing?.cost?.toString() ?: "") }
 
-    // Date & time default to "now" and can be changed with the pickers below.vo
-    val now = remember (editing) { Calendar.getInstance().apply { if (editing != null) timeInMillis = editing.timestamp } }
+    // Date & time default to "now" and can be changed with the pickers below
+    val now = remember(editing){
+        Instant.ofEpochMilli(editing?.timestamp ?: System.currentTimeMillis())
+            .atZone(ZoneId.systemDefault())
+    }
 
-    var dateMillis by remember { mutableLongStateOf(now.timeInMillis) }
-    var hour by remember { mutableIntStateOf(now.get(Calendar.HOUR_OF_DAY)) }
-    var minute by remember { mutableIntStateOf(now.get(Calendar.MINUTE)) }
+    var dateMillis by remember(editing) { mutableLongStateOf(now.toInstant().toEpochMilli()) }
+    var hour by remember { mutableIntStateOf(now.hour) }
+    var minute by remember { mutableIntStateOf(now.minute) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -153,7 +158,7 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
         ){
             OutlinedTextField(
                 value = cost,
-                onValueChange = { input -> if (input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) cost = input },
+                onValueChange = { input -> if (input.matches(Regex("^\\d*\\.?\\d{0,2}$"))) cost = input },
                 label = { Text("Cost") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
@@ -209,13 +214,12 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
         Button(
             onClick = {
                 // combine the chosen date with the chosen hour/minute into one timestamp
-                val chosen = Calendar.getInstance().apply {
-                    timeInMillis = dateMillis
-                    set(Calendar.HOUR_OF_DAY, hour)
-                    set(Calendar.MINUTE, minute)
-                    set(Calendar.SECOND, 0)
-                }
-                onSave(selectedCategory, cost, chosen.timeInMillis, selectedCurrency)
+                val chosenDate = Instant.ofEpochMilli(dateMillis).atZone(ZoneOffset.UTC).toLocalDate()
+                val chosenMillis = chosenDate.atTime(hour, minute)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                onSave(selectedCategory, cost, chosenMillis, selectedCurrency)
             },
             modifier = Modifier.fillMaxWidth()
         ) {

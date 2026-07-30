@@ -16,8 +16,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
+
 
 @HiltViewModel
 class MainPageViewModel @Inject constructor(
@@ -27,6 +32,8 @@ class MainPageViewModel @Inject constructor(
     private val apiRepo: CurrencyRepository
     ): ViewModel() {
 
+    private val MIN_DAYS_FOR_PROJECTION = 4
+    private val FIXED_CATEGORIES = setOf<String>("Rent")
 
     private val _effects = Channel<MainEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -65,7 +72,7 @@ class MainPageViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
-        _state.update { it.copy(payments = payments, total = total, isLoading = false) }
+        _state.update { it.withPayments(payments).copy(total = total, isLoading = false) }
         refreshCurrencies()
     }
 
@@ -93,13 +100,13 @@ class MainPageViewModel @Inject constructor(
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
         println("the user total is $total")
-        _state.update { it.copy(payments = payments, total = total, editing = null, formVersion = it.formVersion + 1) }
+        _state.update { it.withPayments(payments).copy(total = total, editing = null, formVersion = it.formVersion + 1) }
         _effects.send(MainEffect.GoToList)
     }
 
     private fun delete(payment: Payment){
         val previous = _state.value.payments
-        _state.update { s -> s.copy(payments = s.payments.filterNot{it.id == payment.id}) }
+        _state.update { s -> s.withPayments(s.payments.filterNot{it.id == payment.id}) }
         viewModelScope.launch {
             try {
                 globStore.deletePayment(payment)
@@ -107,7 +114,7 @@ class MainPageViewModel @Inject constructor(
                 println("the user total is $total on delete")
                 _state.update {it.copy(total = total)}
             } catch (_: Exception){
-                _state.update { it.copy(payments = previous) }
+                _state.update { it.withPayments(previous) }
                 _effects.send(MainEffect.ShowError("Couldn't delete"))
             }
         }
@@ -119,6 +126,33 @@ class MainPageViewModel @Inject constructor(
         _effects.send(MainEffect.GoToLogin)
     }
 
+
+    private fun analyticsFrom(payments: List<Payment>) : AnalyticsStats {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val currentMonth = YearMonth.from(today)
+        val daysElapsed = today.dayOfMonth
+
+        val thisMonth = payments.filter {
+            YearMonth.from(Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate()) == currentMonth
+        }
+
+        val spent = thisMonth.sumOf { it.cost }
+        val fixed = thisMonth.filter { it.category in FIXED_CATEGORIES }.sumOf { it.cost }
+        val variable = spent - fixed
+        val variablePerDay = if (daysElapsed > 0) variable / daysElapsed else 0.0
+
+        return AnalyticsStats(
+            spentThisMonth = spent,
+            fixedThisMonth = fixed,
+            variablePerDay = variablePerDay,
+            projectedTotal = if (daysElapsed < MIN_DAYS_FOR_PROJECTION) null
+                            else fixed + (variablePerDay) * currentMonth.lengthOfMonth()
+        )
+    }
+
+    private fun MainUiState.withPayments(newPayments: List<Payment>) : MainUiState =
+        copy(payments = newPayments, analytics = analyticsFrom(newPayments))
 }
 
 fun checkDouble(num: Double?): Double?{
@@ -126,3 +160,4 @@ fun checkDouble(num: Double?): Double?{
     return null
 }
 
+//TODO check what is composable navigation.

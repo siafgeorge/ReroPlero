@@ -24,25 +24,35 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.Fill
-import java.util.Calendar
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 
+fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
 @Composable
-fun AnalyticsScreen(payments: List<Payment>) {
+fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
 
+    val currentMonth = remember { YearMonth.now() }
+    val thisMonth = remember(payments, currentMonth) {
+        payments.filter {
+            YearMonth.from(it.timestamp.toLocalDate()) == currentMonth
+        }
+    }
 
-    val dailyCosts = payments.groupBy { payment ->
-        val cal = Calendar.getInstance().apply { timeInMillis = payment.timestamp }
-        cal.get(Calendar.DAY_OF_MONTH)
-    }.mapValues { (_, paymentList) ->
-        paymentList.sumOf { it.cost }
+    val dailyCosts: Map<Int, Double> = remember(thisMonth) {
+        thisMonth.groupBy { it.timestamp.toLocalDate().dayOfMonth }
+            .mapValues { (_, list) -> list.sumOf { it.cost } }
     }
 
     Column(
@@ -51,6 +61,9 @@ fun AnalyticsScreen(payments: List<Payment>) {
             .padding(16.dp)
     ) {
         Text("Monthly Spending", style = MaterialTheme.typography.titleLarge)
+        analytics.projectedTotal?.let{
+            Text("Projected this month: €${"%.2f".format(it)}")
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
         if (dailyCosts.isEmpty()) {
@@ -65,8 +78,8 @@ fun AnalyticsScreen(payments: List<Payment>) {
                 colors = CardDefaults.cardColors()
             ) {
                 val modelProducer = remember { CartesianChartModelProducer() }
-                val daysInMonth = Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH)
-                val xValues = (1..daysInMonth).toList()
+                val today = remember { LocalDate.now().dayOfMonth }
+                val xValues = (1..today).toList()
                 val yValues = remember(dailyCosts){
                     var running = 0.0
                     xValues.map { day ->
@@ -74,11 +87,17 @@ fun AnalyticsScreen(payments: List<Payment>) {
                         running.toFloat()
                     }
                 }
+                val daysInMonth = remember { YearMonth.now().lengthOfMonth() }
+                val projectionX = remember(today, daysInMonth) { listOf(today, daysInMonth) }
+                val projectionY = remember (yValues, analytics.projectedTotal){
+                    analytics.projectedTotal?.let { listOf(yValues.last(), it.toFloat()) }
+                }
 
-                LaunchedEffect(yValues) {
+                LaunchedEffect(yValues, projectionY) {
                     modelProducer.runTransaction {
                         lineSeries {
                             series(xValues ,yValues)
+                            if (projectionY != null) series(projectionX, projectionY)
                         }
                     }
                 }
@@ -100,10 +119,24 @@ fun AnalyticsScreen(payments: List<Payment>) {
                 CartesianChartHost(
                     modelProducer = modelProducer,
                     chart = rememberCartesianChart(
-                        rememberLineCartesianLayer(),
+                        rememberLineCartesianLayer(
+                            rangeProvider = remember(today, daysInMonth, projectionY) {
+                                CartesianLayerRangeProvider.fixed(minX = 1.0, maxX = if (projectionY != null) daysInMonth.toDouble() else today.toDouble())
+                            },
+                            lineProvider = LineCartesianLayer.LineProvider.series(
+                                LineCartesianLayer.rememberLine(
+                                    fill = LineCartesianLayer.LineFill.single(Fill(primary)),
+                                    areaFill = areaFill
+                                ),
+                                LineCartesianLayer.rememberLine(
+                                    fill = LineCartesianLayer.LineFill.single(Fill(primary.copy(alpha = 0.4f))),
+                                    stroke = LineCartesianLayer.LineStroke.Dashed()
+                                )
+                            )
+                        ),
                         startAxis = VerticalAxis.rememberStart(
                             valueFormatter = CartesianValueFormatter{
-                                _, value, _ -> "${value.toInt()}"
+                                _, value, _ -> "€${"%.0f".format(value)}"
                             }
                         ),
                         bottomAxis = HorizontalAxis.rememberBottom()
