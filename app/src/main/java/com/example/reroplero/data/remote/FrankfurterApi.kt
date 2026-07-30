@@ -8,6 +8,9 @@ import retrofit2.http.Query
 // -> {"amount":1.0,"base":"USD","date":"2026-07-17","rates":{"EUR":0.8571}}
 
 interface FrankfurterApi {
+    companion object {
+        const val BASE_URL= "https://api.frankfurter.dev/"
+    }
     @GET("v1/latest")
     suspend fun getLatest(
         @Query("base") base: String,

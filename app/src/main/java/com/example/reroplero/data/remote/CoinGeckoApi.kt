@@ -6,6 +6,9 @@ import retrofit2.http.Query
 
 
 interface CoinGeckoApi {
+    companion object {
+        const val BASE_URL = "https://api.coingecko.com/"
+    }
     @GET("api/v3/coins/markets")
     suspend fun getMarkets(
         @Query("vs_currency") vsCurrency: String = "eur",

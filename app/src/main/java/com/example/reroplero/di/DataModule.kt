@@ -47,7 +47,7 @@ object DataModule {
     @Singleton
     fun provideFrankfurterApi(): FrankfurterApi =
         Retrofit.Builder()
-            .baseUrl("https://api.frankfurter.dev/") //TODO make this link constant.
+            .baseUrl(FrankfurterApi.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(FrankfurterApi::class.java)
@@ -56,7 +56,7 @@ object DataModule {
     @Singleton
     fun provideCoinGeckoApi(): CoinGeckoApi =
         Retrofit.Builder()
-            .baseUrl("https://api.coingecko.com/") //TODO make this constant too
+            .baseUrl(CoinGeckoApi.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(CoinGeckoApi::class.java)
