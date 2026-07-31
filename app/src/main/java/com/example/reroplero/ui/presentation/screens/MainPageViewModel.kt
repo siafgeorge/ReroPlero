@@ -53,11 +53,19 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.Logout -> logout()
             is MainIntent.RefreshCurrencies -> refreshCurrencies()
             is MainIntent.SetLogoutDialog -> _state.update { it.copy(showLogoutDialog = intent.visible) }
-            is MainIntent.PreviousAnalyticsMonth -> previousAnalyticsMonth()
             is MainIntent.NextAnalyticsMonth -> nextAnalyticsMonth()
+            is MainIntent.PreviousAnalyticsMonth -> previousAnalyticsMonth()
+            is MainIntent.NextAnalyticsYear -> nextAnalyticsYear()
+            is MainIntent.PreviousAnalyticsYear -> previousAnalyticsYear()
         }
     }
 
+    private fun earliestYearWithData(payments: List<Payment>) : Int {
+        val zone = ZoneId.systemDefault()
+        return payments.minOfOrNull {
+            Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate().year
+        } ?: YearMonth.now().year
+    }
     private fun earliestMonthWithData(payments: List<Payment>): YearMonth? {
         val zone = ZoneId.systemDefault()
         return payments.minOfOrNull {
@@ -67,14 +75,21 @@ class MainPageViewModel @Inject constructor(
     private fun MainUiState.withPayments(newPayments: List<Payment>) : MainUiState = copy(
         payments = newPayments,
         analytics = analyticsFrom(newPayments, analyticsMonth),
+        canGoToNextMonth = analyticsMonth < YearMonth.now(),
         canGoToPreviousMonth = analyticsMonth > earliestMonthWithData(newPayments),
-        canGoToNextMonth = analyticsMonth < YearMonth.now()
+        canGoToNextYear = analyticsYear < YearMonth.now().year,
+        canGoToPreviousYear = analyticsYear > earliestYearWithData(newPayments)
     )
     private fun MainUiState.withMonth(month: YearMonth) : MainUiState = copy(
         analyticsMonth = month,
         analytics = analyticsFrom(payments, month),
         canGoToPreviousMonth = month > earliestMonthWithData(payments),
         canGoToNextMonth = month < YearMonth.now()
+    )
+    private fun MainUiState.withYear(year: Int) : MainUiState = copy(
+        analyticsYear = year,
+        canGoToNextYear = year < YearMonth.now().year,
+        canGoToPreviousYear = year > earliestYearWithData(payments)
     )
     private fun previousAnalyticsMonth() {
         val current = _state.value
@@ -86,8 +101,22 @@ class MainPageViewModel @Inject constructor(
     private fun nextAnalyticsMonth() {
         val current = _state.value
         val target = current.analyticsMonth.plusMonths(1)
-        if (target >= earliestMonthWithData(current.payments)){
+        if (target <= YearMonth.now()){
             _state.update { it.withMonth(target) }
+        }
+    }
+    private fun previousAnalyticsYear() {
+        val current = _state.value
+        val target = current.analyticsYear - 1
+        if (target >= earliestYearWithData(current.payments)){
+            _state.update { it.withYear(target) }
+        }
+    }
+    private fun nextAnalyticsYear() {
+        val current = _state.value
+        val target = current.analyticsYear + 1
+        if (target <= YearMonth.now().year){
+            _state.update { it.withYear(target) }
         }
     }
     private fun refreshCurrencies() = viewModelScope.launch {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -45,6 +46,15 @@ fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneId.sys
 @Composable
 fun AnalyticsScreen(viewModel: MainPageViewModel, state: MainUiState) {
 
+    val thisYear = remember(state.payments, state.analyticsYear) {
+        state.payments.filter { it.timestamp.toLocalDate().year == state.analyticsYear }
+    }
+
+    val monthlyCosts: Map<Int, Double> = remember(thisYear) {
+        thisYear.groupBy { it.timestamp.toLocalDate().monthValue }
+            .mapValues { (_, list) -> list.sumOf { it.cost } }
+    }
+
     val thisMonth = remember(state.payments, state.analyticsMonth) {
         state.payments.filter {
             YearMonth.from(it.timestamp.toLocalDate()) == state.analyticsMonth
@@ -61,6 +71,7 @@ fun AnalyticsScreen(viewModel: MainPageViewModel, state: MainUiState) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        Text("Monthly", style = MaterialTheme.typography.titleLarge)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -161,6 +172,100 @@ fun AnalyticsScreen(viewModel: MainPageViewModel, state: MainUiState) {
                     scrollState = rememberVicoScrollState(scrollEnabled = false),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(250.dp)
+                        .padding(8.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Yearly", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = { viewModel.onIntent(MainIntent.PreviousAnalyticsYear) },
+                enabled = state.canGoToPreviousYear
+            ) {
+                Text("< Prev")
+            }
+            Text(state.analyticsYear.toString(), style = MaterialTheme.typography.titleLarge)
+            OutlinedButton(
+                onClick = { viewModel.onIntent(MainIntent.NextAnalyticsYear) },
+                enabled = state.canGoToNextYear
+            ){
+                Text("Next >")
+            }
+        }
+        Spacer( modifier = Modifier.height(16.dp) )
+        if (monthlyCosts.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                Text("No data available")
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+                    .height(300.dp),
+                colors = CardDefaults.cardColors()
+            ) {
+                val yearModelProducer = remember { CartesianChartModelProducer() }
+                val isCurrentYear = state.analyticsYear == YearMonth.now().year
+                val currentMonthIndex = if (isCurrentYear) YearMonth.now().monthValue else 12
+                val monthValues = (1..currentMonthIndex).toList()
+                val yearYValues = remember(monthlyCosts){
+                    var running = 0.0
+                    monthValues.map { month ->
+                        running += monthlyCosts[month] ?: 0.0
+                        running.toFloat()
+                    }
+                }
+                LaunchedEffect(yearYValues) {
+                    yearModelProducer.runTransaction {
+                        lineSeries {
+                            series(monthValues, yearYValues)
+                        }
+                    }
+                }
+
+                val yearPrimary = MaterialTheme.colorScheme.primary
+                val yearAreaFill = remember(yearPrimary) {
+                    LineCartesianLayer.AreaFill.single(
+                        Fill(
+                            Brush.verticalGradient(
+                                listOf(
+                                    yearPrimary.copy(alpha = 0.4f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                    )
+                }
+                CartesianChartHost(
+                    modelProducer = yearModelProducer,
+                    chart = rememberCartesianChart(
+                        rememberLineCartesianLayer(
+                            rangeProvider = remember(currentMonthIndex) {
+                                CartesianLayerRangeProvider.fixed(minX = 1.0, maxX = currentMonthIndex.toDouble())
+                            },
+                            lineProvider = LineCartesianLayer.LineProvider.series(
+                                LineCartesianLayer.rememberLine(
+                                    fill = LineCartesianLayer.LineFill.single(Fill(yearPrimary)),
+                                    areaFill = yearAreaFill
+                                )
+                            )
+                        ),
+                        startAxis = VerticalAxis.rememberStart(
+                            valueFormatter = CartesianValueFormatter{
+                                _, value, _ -> "#${"%.0f".format(value)}"
+                            }
+                        ),
+                        bottomAxis = HorizontalAxis.rememberBottom()
+                    ),
+                    scrollState = rememberVicoScrollState(scrollEnabled = false),
+                    modifier = Modifier.fillMaxWidth()
                         .height(250.dp)
                         .padding(8.dp)
                 )

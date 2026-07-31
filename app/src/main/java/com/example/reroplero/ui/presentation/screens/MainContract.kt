@@ -25,7 +25,10 @@ data class MainUiState(
     val analytics: AnalyticsStats = AnalyticsStats(),
     val analyticsMonth: YearMonth = YearMonth.now(),
     val canGoToPreviousMonth: Boolean = false,
-    val canGoToNextMonth: Boolean = false
+    val canGoToNextMonth: Boolean = false,
+    val analyticsYear: Int = YearMonth.now().year,
+    val canGoToPreviousYear: Boolean = false,
+    val canGoToNextYear: Boolean = false
 )
 
 sealed interface MainIntent {
@@ -45,6 +48,8 @@ sealed interface MainIntent {
     data class SetLogoutDialog(val visible: Boolean) : MainIntent
     data object PreviousAnalyticsMonth : MainIntent
     data object NextAnalyticsMonth : MainIntent
+    data object PreviousAnalyticsYear : MainIntent
+    data object NextAnalyticsYear : MainIntent
 }
 
 sealed interface MainEffect {
