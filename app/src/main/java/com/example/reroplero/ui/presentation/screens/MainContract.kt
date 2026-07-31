@@ -2,6 +2,7 @@ package com.example.reroplero.ui.presentation.screens
 
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
+import java.time.YearMonth
 
 
 data class AnalyticsStats(
@@ -21,7 +22,10 @@ data class MainUiState(
     val notLoggedIn: Boolean = false,
     val formVersion: Int = 0,
     val showLogoutDialog: Boolean = false,
-    val analytics: AnalyticsStats = AnalyticsStats()
+    val analytics: AnalyticsStats = AnalyticsStats(),
+    val analyticsMonth: YearMonth = YearMonth.now(),
+    val canGoToPreviousMonth: Boolean = false,
+    val canGoToNextMonth: Boolean = false
 )
 
 sealed interface MainIntent {
@@ -39,6 +43,8 @@ sealed interface MainIntent {
     data object RefreshCurrencies : MainIntent
 
     data class SetLogoutDialog(val visible: Boolean) : MainIntent
+    data object PreviousAnalyticsMonth : MainIntent
+    data object NextAnalyticsMonth : MainIntent
 }
 
 sealed interface MainEffect {

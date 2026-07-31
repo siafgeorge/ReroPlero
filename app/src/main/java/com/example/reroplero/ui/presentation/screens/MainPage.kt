@@ -155,7 +155,7 @@ class MainPage : ComponentActivity() {
                                 }
                             )
 
-                            Tab.ANALYTICS -> AnalyticsScreen(state.payments, state.analytics)
+                            Tab.ANALYTICS -> AnalyticsScreen(viewModel, state)
                             Tab.TRANSACTION -> NewtransScreen(
                                 viewModel,
                                 editing = state.editing,

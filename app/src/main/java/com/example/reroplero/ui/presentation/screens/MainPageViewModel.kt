@@ -53,9 +53,43 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.Logout -> logout()
             is MainIntent.RefreshCurrencies -> refreshCurrencies()
             is MainIntent.SetLogoutDialog -> _state.update { it.copy(showLogoutDialog = intent.visible) }
+            is MainIntent.PreviousAnalyticsMonth -> previousAnalyticsMonth()
+            is MainIntent.NextAnalyticsMonth -> nextAnalyticsMonth()
         }
     }
 
+    private fun earliestMonthWithData(payments: List<Payment>): YearMonth? {
+        val zone = ZoneId.systemDefault()
+        return payments.minOfOrNull {
+            YearMonth.from(Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate())
+        } ?: YearMonth.now()
+    }
+    private fun MainUiState.withPayments(newPayments: List<Payment>) : MainUiState = copy(
+        payments = newPayments,
+        analytics = analyticsFrom(newPayments, analyticsMonth),
+        canGoToPreviousMonth = analyticsMonth > earliestMonthWithData(newPayments),
+        canGoToNextMonth = analyticsMonth < YearMonth.now()
+    )
+    private fun MainUiState.withMonth(month: YearMonth) : MainUiState = copy(
+        analyticsMonth = month,
+        analytics = analyticsFrom(payments, month),
+        canGoToPreviousMonth = month > earliestMonthWithData(payments),
+        canGoToNextMonth = month < YearMonth.now()
+    )
+    private fun previousAnalyticsMonth() {
+        val current = _state.value
+        val target = current.analyticsMonth.minusMonths(1)
+        if (target >= earliestMonthWithData(current.payments)) {
+            _state.update { it.withMonth(target) }
+        }
+    }
+    private fun nextAnalyticsMonth() {
+        val current = _state.value
+        val target = current.analyticsMonth.plusMonths(1)
+        if (target >= earliestMonthWithData(current.payments)){
+            _state.update { it.withMonth(target) }
+        }
+    }
     private fun refreshCurrencies() = viewModelScope.launch {
         if (state.value.currencies.size > 1) {
             return@launch
@@ -127,16 +161,12 @@ class MainPageViewModel @Inject constructor(
     }
 
 
-    private fun analyticsFrom(payments: List<Payment>) : AnalyticsStats {
+    private fun analyticsFrom(payments: List<Payment>, month: YearMonth) : AnalyticsStats {
         val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        val currentMonth = YearMonth.from(today)
-        val daysElapsed = today.dayOfMonth
-
+        val daysElapsed = if (month == YearMonth.now()) LocalDate.now().dayOfMonth else month.lengthOfMonth()
         val thisMonth = payments.filter {
-            YearMonth.from(Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate()) == currentMonth
+            YearMonth.from(Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate()) == month
         }
-
         val spent = thisMonth.sumOf { it.cost }
         val fixed = thisMonth.filter { it.category in FIXED_CATEGORIES }.sumOf { it.cost }
         val variable = spent - fixed
@@ -146,13 +176,9 @@ class MainPageViewModel @Inject constructor(
             spentThisMonth = spent,
             fixedThisMonth = fixed,
             variablePerDay = variablePerDay,
-            projectedTotal = if (daysElapsed < MIN_DAYS_FOR_PROJECTION) null
-                            else fixed + (variablePerDay) * currentMonth.lengthOfMonth()
+            projectedTotal = if (daysElapsed < MIN_DAYS_FOR_PROJECTION) null else fixed + (variablePerDay) * month.lengthOfMonth()
         )
     }
-
-    private fun MainUiState.withPayments(newPayments: List<Payment>) : MainUiState =
-        copy(payments = newPayments, analytics = analyticsFrom(newPayments))
 }
 
 fun checkDouble(num: Double?): Double?{

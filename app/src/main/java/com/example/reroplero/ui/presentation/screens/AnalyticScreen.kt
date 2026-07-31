@@ -1,7 +1,9 @@
 package com.example.reroplero.ui.presentation.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.reroplero.data.local.models.Payment
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
@@ -41,12 +43,11 @@ import java.time.ZoneId
 fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
 @Composable
-fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
+fun AnalyticsScreen(viewModel: MainPageViewModel, state: MainUiState) {
 
-    val currentMonth = remember { YearMonth.now() }
-    val thisMonth = remember(payments, currentMonth) {
-        payments.filter {
-            YearMonth.from(it.timestamp.toLocalDate()) == currentMonth
+    val thisMonth = remember(state.payments, state.analyticsMonth) {
+        state.payments.filter {
+            YearMonth.from(it.timestamp.toLocalDate()) == state.analyticsMonth
         }
     }
 
@@ -60,8 +61,22 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Monthly Spending", style = MaterialTheme.typography.titleLarge)
-        analytics.projectedTotal?.let{
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = { viewModel.onIntent(MainIntent.PreviousAnalyticsMonth) },
+                enabled = state.canGoToPreviousMonth
+            ) { Text("< Prev") }
+            Text(state.analyticsMonth.toString(), style = MaterialTheme.typography.titleLarge)
+            OutlinedButton(
+                onClick = { viewModel.onIntent(MainIntent.NextAnalyticsMonth) },
+                enabled = state.canGoToNextMonth
+            ) { Text("Next >") }
+        }
+        state.analytics.projectedTotal?.let{
             Text("Projected this month: €${"%.2f".format(it)}")
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -78,7 +93,9 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
                 colors = CardDefaults.cardColors()
             ) {
                 val modelProducer = remember { CartesianChartModelProducer() }
-                val today = remember { LocalDate.now().dayOfMonth }
+                val isCurrentMonth = state.analyticsMonth == YearMonth.now()
+                val daysInMonth = remember(state.analyticsMonth) { state.analyticsMonth.lengthOfMonth() }
+                val today = if (isCurrentMonth) LocalDate.now().dayOfMonth else daysInMonth
                 val xValues = (1..today).toList()
                 val yValues = remember(dailyCosts){
                     var running = 0.0
@@ -87,10 +104,9 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
                         running.toFloat()
                     }
                 }
-                val daysInMonth = remember { YearMonth.now().lengthOfMonth() }
                 val projectionX = remember(today, daysInMonth) { listOf(today, daysInMonth) }
-                val projectionY = remember (yValues, analytics.projectedTotal){
-                    analytics.projectedTotal?.let { listOf(yValues.last(), it.toFloat()) }
+                val projectionY = remember(yValues, state.analytics.projectedTotal, isCurrentMonth){
+                    if (isCurrentMonth) state.analytics.projectedTotal?.let { listOf(yValues.last(), it.toFloat()) } else null
                 }
 
                 LaunchedEffect(yValues, projectionY) {
@@ -136,7 +152,7 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
                         ),
                         startAxis = VerticalAxis.rememberStart(
                             valueFormatter = CartesianValueFormatter{
-                                _, value, _ -> "€${"%.0f".format(value)}"
+                                    _, value, _ -> "€${"%.0f".format(value)}"
                             }
                         ),
                         bottomAxis = HorizontalAxis.rememberBottom()
@@ -152,4 +168,12 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
         }
     }
 }
-
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, colors = CardDefaults.cardColors()){
+        Column(modifier = Modifier.padding(12.dp)){
+            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
