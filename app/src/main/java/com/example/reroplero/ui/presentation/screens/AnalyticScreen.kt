@@ -1,7 +1,9 @@
 package com.example.reroplero.ui.presentation.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,8 +63,16 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
             .padding(16.dp)
     ) {
         Text("Monthly Spending", style = MaterialTheme.typography.titleLarge)
-        analytics.projectedTotal?.let{
-            Text("Projected this month: €${"%.2f".format(it)}")
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ){
+           StatCard(label = "Spent", value = "€${"%.2f".format(analytics.spentThisMonth)}", modifier = Modifier.weight(1f))
+           StatCard(label = "Daily avg", value = "€${"%.2f".format(analytics.variablePerDay)}", modifier = Modifier.weight(1f))
+            analytics.projectedTotal?.let{
+                StatCard(label = "Projected", value = "€${"%.2f".format(it)}", modifier = Modifier.weight(1f))
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -153,3 +163,12 @@ fun AnalyticsScreen(payments: List<Payment>, analytics: AnalyticsStats) {
     }
 }
 
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, colors = CardDefaults.cardColors()){
+        Column(modifier = Modifier.padding(12.dp)){
+            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
