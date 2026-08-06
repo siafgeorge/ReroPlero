@@ -214,5 +214,3 @@ fun checkDouble(num: Double?): Double?{
     if (num != null && num > 0.0) return num
     return null
 }
-
-//TODO check what is composable navigation.

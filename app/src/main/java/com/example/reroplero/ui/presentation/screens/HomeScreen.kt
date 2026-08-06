@@ -7,9 +7,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,7 +29,8 @@ fun Homescreen(
     username: String,
     total: Double,
     onLogout: () -> Unit,
-    onSetLogoutDialog: (Boolean) -> Unit
+    onSetLogoutDialog: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit
 ){
     Box(modifier = Modifier.fillMaxSize()){
 
@@ -35,20 +41,26 @@ fun Homescreen(
         ){
             Text("HELLO $username !")
             Spacer(Modifier.height(12.dp))
-            Text("Your balance is: -$${String.format("%.2f", total)}")
+            Text("Your balance is: €${String.format("%.2f", total)}")
         }
+        IconButton(
+            onClick = onOpenSettings,
+            modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
+                .size(48.dp)
+        ){
+            Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(48.dp))
+        }
+
         Button(
             onClick = { onSetLogoutDialog(true) },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Red,
                 contentColor = Color.White
             ),
-            modifier = Modifier.align(Alignment.TopEnd)
-                .padding(16.dp)
-        )
-            {
-                Text("Logout")
-            }
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+        ){
+            Text("Logout")
+        }
         if (state.showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { onSetLogoutDialog(false) },

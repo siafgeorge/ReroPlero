@@ -135,7 +135,7 @@ fun PaymentCard(payment: Payment){
                 )
             }
             Text(
-                text = "%.2f".format(payment.cost),
+                text = "€%.2f".format(payment.cost),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,

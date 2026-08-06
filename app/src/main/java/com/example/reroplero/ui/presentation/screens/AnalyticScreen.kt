@@ -87,9 +87,11 @@ fun AnalyticsScreen(viewModel: MainPageViewModel, state: MainUiState) {
                 enabled = state.canGoToNextMonth
             ) { Text("Next >") }
         }
-        state.analytics.projectedTotal?.let{
+
+        state.analytics.projectedTotal?.let{//TODO fix this when you are in another month.
             Text("Projected this month: €${"%.2f".format(it)}")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         if (dailyCosts.isEmpty()) {
