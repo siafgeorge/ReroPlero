@@ -8,9 +8,6 @@ class LoginContracts {
         val passwordErrorText: String? = null,
         val isLoading: Boolean = false,
         val isLoggedIn: Boolean = false,
-        val usernameHint: String = "Username",
-        val passwordHint: String = "Password",
-        val registerUser: String = "Register User"
     )
 
     sealed interface LoginActions {

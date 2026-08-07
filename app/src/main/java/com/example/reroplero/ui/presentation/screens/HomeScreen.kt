@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.reroplero.R
 
 @Composable
 fun Homescreen(
@@ -42,9 +44,9 @@ fun Homescreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ){
-            Text("HELLO $username !")
+            Text(stringResource(R.string.hello_user, username))
             Spacer(Modifier.height(12.dp))
-            Text("Your balance is: €${String.format("%.2f", total)}")
+            Text(stringResource(R.string.your_balance, stringResource(R.string.euro), total))
         }
 
         val bitmap = remember(state.profilePicturePath, state.profilePictureVersion){
@@ -66,12 +68,12 @@ fun Homescreen(
                 if (bitmap != null) {
                     Image(
                         bitmap = bitmap,
-                        contentDescription = "Profile Picture",
+                        contentDescription = stringResource(R.string.profile_picture_desc),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(Icons.Default.Person, contentDescription = "Profile Picture", modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Person, contentDescription = stringResource(R.string.profile_picture_desc), modifier = Modifier.size(28.dp))
                 }
             }
         }

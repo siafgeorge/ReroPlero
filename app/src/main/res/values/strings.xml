@@ -2,4 +2,33 @@
     <string name="app_name">ReroPlero</string>
     <string name="login_text">Login</string>
     <string name="database">Database</string>
+    <string name="username_hint">Username</string>
+    <string name="password_hint">Password</string>
+    <string name="register_user">Register User</string>
+    <string name="hello_user">Hello, %1$s!</string>
+    <string name="euro">€</string>
+    <string name="your_balance">Your balance: %1$s%2$.2f</string>
+    <string name="profile_picture_desc">Profile Picture</string>
+    <string name="next">Next &gt;</string>
+    <string name="prev">&lt; Prev</string>
+    <string name="projected_month">Projected this month: %1$s%2$.2f</string>
+    <string name="no_data">No data available</string>
+    <string name="monthly">Monthly</string>
+    <string name="yearly">Yearly</string>
+    <string name="food">Food</string>
+    <string name="transport">Transport</string>
+    <string name="rent">Rent</string>
+    <string name="fun_">Fun</string>
+    <string name="timeFormat">%02d:%02d</string>
+    <string name="dateFormat">dd MMM yyyy</string>
+    <string name="notransyet">No transactions yet</string>
+    <string name="delpay">Delete Payment ?</string>
+    <string name="suredelpay">Are you sure that you want to delete this payment ?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="payDayformat">dd MMM yyyy . HH:mm</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="retry">Retry</string>
+
 </resources>

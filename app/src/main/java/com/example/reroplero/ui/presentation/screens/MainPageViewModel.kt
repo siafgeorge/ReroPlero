@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.ConnectivityManager
+import android.net.Network
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModel
@@ -17,9 +19,11 @@ import com.example.reroplero.domain.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -51,7 +55,17 @@ class MainPageViewModel @Inject constructor(
     private val _state = MutableStateFlow(MainUiState())
     val state: StateFlow<MainUiState> = _state.asStateFlow()
 
-    init { onIntent(MainIntent.Load) }
+    init {
+        onIntent(MainIntent.Load)
+        viewModelScope.launch {
+            observeConnectivity().collect {
+                isOnline -> if (isOnline) {
+                    refreshCurrencies()
+
+                }
+            }
+        }
+    }
 
     fun onIntent(intent: MainIntent) {
         when (intent) {
@@ -273,6 +287,20 @@ class MainPageViewModel @Inject constructor(
         }else{
             _effects.send(MainEffect.ShowError("Current password is incorrect"))
         }
+    }
+
+    private fun observeConnectivity() = callbackFlow<Boolean> {
+        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                trySend(true)
+            }
+            override fun onLost(network: Network) {
+                trySend(false)
+            }
+        }
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
     }
 }
 

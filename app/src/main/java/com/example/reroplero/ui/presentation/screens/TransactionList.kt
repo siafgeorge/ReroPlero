@@ -39,10 +39,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.reroplero.R
 import com.example.reroplero.data.local.models.Payment
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -57,7 +59,7 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
 
     if (state.payments.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No transactions yet")
+            Text(stringResource(R.string.notransyet))
         }
         return
     }
@@ -87,8 +89,8 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
     if (shouldDeleteDialog){
         AlertDialog(
             onDismissRequest = { shouldDeleteDialog = false},
-            title = { Text("Delete Payment ?") },
-            text = { Text("Are you sure that you want to delete this payment ?") },
+            title = { Text(stringResource(R.string.delpay)) },
+            text = { Text(stringResource(R.string.suredelpay)) },
             confirmButton = {
                 TextButton(onClick = {
                     shouldDeleteDialog = false
@@ -98,14 +100,14 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
                         }
                     }
                 }) {
-                    Text("Yes")
+                    Text(stringResource(R.string.yes))
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     shouldDeleteDialog = false
                 }) {
-                    Text("No")
+                    Text(stringResource(R.string.no))
                 }
             }
         )
@@ -114,8 +116,9 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
 
 @Composable
 fun PaymentCard(payment: Payment){
+    val payDayformat = stringResource(R.string.payDayformat)
     val dateLabel = remember(payment.timestamp){
-        SimpleDateFormat("dd MMM yyyy . HH:mm", Locale.getDefault())
+        SimpleDateFormat(payDayformat, Locale.getDefault())
             .format(Date(payment.timestamp))
     }
 
@@ -135,7 +138,7 @@ fun PaymentCard(payment: Payment){
                 )
             }
             Text(
-                text = "€%.2f".format(payment.cost),
+                text = "${stringResource(R.string.euro)}%.2f".format(payment.cost),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -167,7 +170,7 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
         ){
             Icon(
                 if (slidingLeft) Icons.Filled.Delete else Icons.Filled.Edit,
-                contentDescription = if (slidingLeft) "Delete" else "Edit",
+                contentDescription = if (slidingLeft) stringResource(R.string.delete) else stringResource(R.string.edit),
                 tint = if (slidingLeft) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimary
             )
         }

@@ -113,7 +113,7 @@ fun LoginFields(viewModel: LoginViewModel) {
     TextField(
         value = state.username,
         onValueChange = { viewModel.onAction(LoginContracts.LoginActions.OnUsernameChange(it)) },
-        label = { Text(state.usernameHint) },
+        label = { Text(stringResource(R.string.username_hint)) },
         isError = state.usernameErrorText != null,
         supportingText = {state.usernameErrorText?.let { Text(it) } },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -123,7 +123,7 @@ fun LoginFields(viewModel: LoginViewModel) {
     TextField(
         value = state.password,
         onValueChange = { viewModel.onAction(LoginContracts.LoginActions.OnPasswordChange(it)) },
-        label = { Text(state.passwordHint) },
+        label = { Text(stringResource(R.string.password_hint)) },
         visualTransformation = PasswordVisualTransformation(),
         isError = state.passwordErrorText != null,
         supportingText = {state.passwordErrorText?.let { Text(it) } },
@@ -135,7 +135,7 @@ fun LoginFields(viewModel: LoginViewModel) {
     )
 
     Text(
-        text = state.registerUser,
+        text = stringResource(R.string.register_user),
         fontSize = 14.sp,
         modifier = Modifier.clickable {
             viewModel.onAction(LoginContracts.LoginActions.OnRegister(state.username, state.password))
