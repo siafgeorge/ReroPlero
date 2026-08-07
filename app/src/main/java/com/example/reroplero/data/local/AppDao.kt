@@ -22,6 +22,17 @@ interface AppDao {
     @Delete
     suspend fun delUser(user: User)
 
+    @Query("UPDATE users SET password = :password WHERE username = :username")
+    suspend fun updatePassword(username: String, password: String)
+
+    suspend fun changePassword(username: String, oldPass: String, newPass: String) : Boolean {
+        if (checkCreds(username, oldPass)){
+            updatePassword(username, newPass)
+            return true
+        }
+        return false
+    }
+
     @Query("SELECT EXISTS(SELECT 1 FROM users WHERE username = :username AND password = :password)")
     suspend fun checkCreds(username: String, password: String): Boolean
 

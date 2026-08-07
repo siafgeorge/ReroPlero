@@ -68,6 +68,7 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.NextAnalyticsYear -> nextAnalyticsYear()
             is MainIntent.PreviousAnalyticsYear -> previousAnalyticsYear()
             is MainIntent.SetProfilePicture -> setProfilePicture(intent.uri)
+            is MainIntent.ChangePassword -> changePassword(intent.currentPassword, intent.newPassword)
         }
     }
 
@@ -255,6 +256,23 @@ class MainPageViewModel @Inject constructor(
             variablePerDay = variablePerDay,
             projectedTotal = if (daysElapsed < MIN_DAYS_FOR_PROJECTION) null else fixed + (variablePerDay) * month.lengthOfMonth()
         )
+    }
+
+    private fun changePassword(currentPassword: String, newPassword: String) = viewModelScope.launch {
+        val user = _state.value.username.ifBlank { return@launch }
+        if (newPassword.isBlank()) {
+            _effects.send(MainEffect.ShowError("Enter a new password"))
+            return@launch
+        }else if (newPassword == currentPassword){
+            _effects.send(MainEffect.ShowError("Enter another password"))
+            return@launch
+        }
+        val success = userRepo.changePassword(user, currentPassword, newPassword)
+        if (success) {
+            _effects.send(MainEffect.ShowMessage("Password Changed"))
+        }else{
+            _effects.send(MainEffect.ShowError("Current password is incorrect"))
+        }
     }
 }
 

@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,11 +28,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,6 +92,7 @@ class LoginPage : ComponentActivity() {
 fun LoginFields(viewModel: LoginViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -110,7 +115,9 @@ fun LoginFields(viewModel: LoginViewModel) {
         onValueChange = { viewModel.onAction(LoginContracts.LoginActions.OnUsernameChange(it)) },
         label = { Text(state.usernameHint) },
         isError = state.usernameErrorText != null,
-        supportingText = {state.usernameErrorText?.let { Text(it) } }
+        supportingText = {state.usernameErrorText?.let { Text(it) } },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions( onNext = {focusManager.moveFocus(FocusDirection.Down)} )
     )
 
     TextField(
@@ -119,7 +126,12 @@ fun LoginFields(viewModel: LoginViewModel) {
         label = { Text(state.passwordHint) },
         visualTransformation = PasswordVisualTransformation(),
         isError = state.passwordErrorText != null,
-        supportingText = {state.passwordErrorText?.let { Text(it) } }
+        supportingText = {state.passwordErrorText?.let { Text(it) } },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(
+            onDone = {viewModel.onAction(LoginContracts.LoginActions.Login)
+            focusManager.clearFocus()
+        })
     )
 
     Text(

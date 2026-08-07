@@ -44,6 +44,7 @@ sealed interface MainIntent {
     ): MainIntent
     data class DeletePayment(val payment: Payment) : MainIntent
     data class StartEditing(val payment: Payment) : MainIntent
+    data class ChangePassword(val currentPassword: String, val newPassword: String) : MainIntent
     data object StopEditing : MainIntent
     data object Logout : MainIntent
     data object RefreshCurrencies : MainIntent
@@ -58,6 +59,7 @@ sealed interface MainIntent {
 sealed interface MainEffect {
     data object GoToList : MainEffect
     data class ShowError(val message : String) : MainEffect
+    data class ShowMessage(val message: String) : MainEffect
 
     data object GoToLogin : MainEffect
 }

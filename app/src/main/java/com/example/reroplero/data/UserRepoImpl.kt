@@ -27,5 +27,5 @@ class UserRepoImpl @Inject constructor(
     override suspend fun getUser(user: String) : User = dao.getUser(user) ?: throw NoSuchElementException("User not found")
     override suspend fun userExists(username: String) = dao.userExists(username)
     override suspend fun updateProfilePicture(username: String, path: String?) = dao.updateProfilePicture(username, path)
-
+    override suspend fun changePassword(username: String, oldpass: String, newpass: String): Boolean = dao.changePassword(username, oldpass, newpass)
 }

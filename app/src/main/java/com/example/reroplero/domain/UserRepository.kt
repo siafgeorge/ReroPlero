@@ -14,4 +14,5 @@ interface UserRepository {
     suspend fun getUser(user: String) : User
     suspend fun userExists(username: String): Boolean
     suspend fun updateProfilePicture(username: String, path: String?)
+    suspend fun changePassword(username: String, oldpass: String, newpass: String): Boolean
 }

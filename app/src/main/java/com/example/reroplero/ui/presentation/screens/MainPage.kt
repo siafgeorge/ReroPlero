@@ -80,8 +80,10 @@ class MainPage : ComponentActivity() {
 
                             MainEffect.GoToList -> pagerState.animateScrollToPage(Tab.TRANSLIST.ordinal)
                             is MainEffect.ShowError ->
-                                Toast.makeText(this@MainPage, effect.message, Toast.LENGTH_SHORT)
-                                    .show()
+                                Toast.makeText(this@MainPage, effect.message, Toast.LENGTH_SHORT).show()
+
+                            is MainEffect.ShowMessage ->
+                                Toast.makeText(this@MainPage, effect.message, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
