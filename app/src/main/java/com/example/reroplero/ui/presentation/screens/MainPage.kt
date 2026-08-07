@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -85,7 +86,7 @@ class MainPage : ComponentActivity() {
                     }
                 }
                 var lastBackPress by remember { mutableLongStateOf(0L) }
-                var showSettings by remember { mutableStateOf(false) }
+                var showSettings by rememberSaveable { mutableStateOf(false) }
                 BackHandler {
                     if (showSettings) {
                         showSettings = false
@@ -104,7 +105,14 @@ class MainPage : ComponentActivity() {
                     }
                 }
                 if (showSettings){
-                    Settings(onBack = {showSettings = false})
+                    Settings(
+                        viewModel = viewModel,
+                        state = state,
+                        onBack = {showSettings = false},
+                        onSetLogoutDialog = {
+                            visible -> viewModel.onIntent(MainIntent.SetLogoutDialog(visible))},
+                        onLogout = { viewModel.onIntent(MainIntent.Logout) }
+                    )
                 }else{
                     Scaffold(
                         bottomBar = {

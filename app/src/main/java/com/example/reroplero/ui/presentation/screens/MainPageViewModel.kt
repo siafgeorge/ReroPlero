@@ -1,6 +1,12 @@
 package com.example.reroplero.ui.presentation.screens
 
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reroplero.data.local.models.Payment
@@ -9,6 +15,7 @@ import com.example.reroplero.domain.PaymentRepository
 import com.example.reroplero.domain.SessionRepository
 import com.example.reroplero.domain.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.ByteArrayInputStream
+import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -29,7 +38,8 @@ class MainPageViewModel @Inject constructor(
     private val userRepo: UserRepository,
     private val session: SessionRepository,
     private val globStore: PaymentRepository,
-    private val apiRepo: CurrencyRepository
+    private val apiRepo: CurrencyRepository,
+    @ApplicationContext private val context: Context
     ): ViewModel() {
 
     private val MIN_DAYS_FOR_PROJECTION = 4
@@ -57,6 +67,7 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.PreviousAnalyticsMonth -> previousAnalyticsMonth()
             is MainIntent.NextAnalyticsYear -> nextAnalyticsYear()
             is MainIntent.PreviousAnalyticsYear -> previousAnalyticsYear()
+            is MainIntent.SetProfilePicture -> setProfilePicture(intent.uri)
         }
     }
 
@@ -135,7 +146,8 @@ class MainPageViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
-        _state.update { it.withPayments(payments).copy(total = total, isLoading = false) }
+        val profilePicturePath = try { userRepo.getUser(user).profilePicturePath } catch (_: NoSuchFileException) { null }
+        _state.update { it.withPayments(payments).copy(total = total, isLoading = false, profilePicturePath = profilePicturePath) }
         refreshCurrencies()
     }
 
@@ -176,7 +188,7 @@ class MainPageViewModel @Inject constructor(
                 val total = userRepo.currentMoney(_state.value.username) ?: 0.0
                 println("the user total is $total on delete")
                 _state.update {it.copy(total = total)}
-            } catch (_: Exception){
+            } catch (_: Exception) {
                 _state.update { it.withPayments(previous) }
                 _effects.send(MainEffect.ShowError("Couldn't delete"))
             }
@@ -189,6 +201,42 @@ class MainPageViewModel @Inject constructor(
         _effects.send(MainEffect.GoToLogin)
     }
 
+    private fun setProfilePicture(uri: Uri) = viewModelScope.launch {
+        val user = _state.value.username.ifBlank {
+            return@launch
+        }
+        val path = try {
+            copyToInternalStorage(uri, user)
+        } catch (_: Exception) {
+            _effects.send(MainEffect.ShowError("Couldn't save picture"))
+            return@launch
+        }
+        userRepo.updateProfilePicture(user, path)
+        _state.update { it.copy(profilePicturePath = path, profilePictureVersion = it.profilePictureVersion + 1) }
+    }
+
+    private fun copyToInternalStorage(uri: Uri, username: String) : String{
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw java.io.IOException("Couldn't open picked image")
+        val orientation = ExifInterface(ByteArrayInputStream(bytes))
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        val degrees = when(orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            ?: throw java.io.IOException("Couldn't decode picked image")
+        val rotated = if (degrees == 0f) bitmap else {
+            val matrix = Matrix().apply { postRotate(degrees) }
+            Bitmap.createBitmap(bitmap, 0,0, bitmap.width, bitmap.height, matrix, true)
+        }
+        val file = File(context.filesDir, "profile_$username.jpg")
+        file.outputStream().use { out -> rotated.compress(Bitmap.CompressFormat.JPEG, 90, out) }
+        return file.absolutePath
+    }
 
     private fun analyticsFrom(payments: List<Payment>, month: YearMonth) : AnalyticsStats {
         val zone = ZoneId.systemDefault()

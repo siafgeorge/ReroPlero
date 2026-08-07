@@ -42,4 +42,7 @@ interface AppDao {
 
     @Query("DELETE FROM payments WHERE username = :username")
     suspend fun deleteAllPaymentsForUser(username: String)
+
+    @Query("UPDATE users SET profilePicturePath = :path WHERE username = :username")
+    suspend fun updateProfilePicture(username: String, path: String?)
 }

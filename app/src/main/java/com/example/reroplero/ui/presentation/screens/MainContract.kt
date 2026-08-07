@@ -1,5 +1,6 @@
 package com.example.reroplero.ui.presentation.screens
 
+import android.net.Uri
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
 import java.time.YearMonth
@@ -28,7 +29,9 @@ data class MainUiState(
     val canGoToNextMonth: Boolean = false,
     val analyticsYear: Int = YearMonth.now().year,
     val canGoToPreviousYear: Boolean = false,
-    val canGoToNextYear: Boolean = false
+    val canGoToNextYear: Boolean = false,
+    val profilePicturePath: String? = null,
+    val profilePictureVersion : Int = 0
 )
 
 sealed interface MainIntent {
@@ -44,7 +47,7 @@ sealed interface MainIntent {
     data object StopEditing : MainIntent
     data object Logout : MainIntent
     data object RefreshCurrencies : MainIntent
-
+    data class SetProfilePicture(val uri: Uri) : MainIntent
     data class SetLogoutDialog(val visible: Boolean) : MainIntent
     data object PreviousAnalyticsMonth : MainIntent
     data object NextAnalyticsMonth : MainIntent

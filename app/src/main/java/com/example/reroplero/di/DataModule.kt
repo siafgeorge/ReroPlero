@@ -31,7 +31,8 @@ object DataModule {
                 context,
         AppDatabase::class.java,
                 context.getString(R.string.database)
-            ).build()
+            ).addMigrations(AppDatabase.MIGRATION_1_2)
+                .build()
 
     @Provides
     fun provideDao(db: AppDatabase) : AppDao = db.dao()

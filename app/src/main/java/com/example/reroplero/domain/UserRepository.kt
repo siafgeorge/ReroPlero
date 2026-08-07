@@ -13,6 +13,5 @@ interface UserRepository {
     suspend fun deleteUser(user: User)
     suspend fun getUser(user: String) : User
     suspend fun userExists(username: String): Boolean
-
-
+    suspend fun updateProfilePicture(username: String, path: String?)
 }

@@ -1,5 +1,9 @@
 package com.example.reroplero.ui.presentation.screens
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,19 +12,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -33,7 +37,6 @@ fun Homescreen(
     onOpenSettings: () -> Unit
 ){
     Box(modifier = Modifier.fillMaxSize()){
-
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -43,42 +46,34 @@ fun Homescreen(
             Spacer(Modifier.height(12.dp))
             Text("Your balance is: €${String.format("%.2f", total)}")
         }
-        IconButton(
-            onClick = onOpenSettings,
-            modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
-                .size(48.dp)
-        ){
-            Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(48.dp))
-        }
 
-        Button(
-            onClick = { onSetLogoutDialog(true) },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Red,
-                contentColor = Color.White
-            ),
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-        ){
-            Text("Logout")
+        val bitmap = remember(state.profilePicturePath, state.profilePictureVersion){
+            state.profilePicturePath?.let { BitmapFactory.decodeFile(it)?.asImageBitmap() }
         }
-        if (state.showLogoutDialog) {
-            AlertDialog(
-                onDismissRequest = { onSetLogoutDialog(false) },
-                title = { Text("Log out") },
-                text = { Text("Are you sure you want to log out ?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onSetLogoutDialog(false)
-                        onLogout()
-                    }) {Text("Yes")}
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        onSetLogoutDialog(false)
-                    }) { Text("No") }
+        Box(
+            modifier = Modifier.align(Alignment.TopStart)
+                .padding(top = 10.dp, start = 25.dp)
+                .size(70.dp)
+                .clickable(onClick = onOpenSettings)
+        ){
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ){
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(Icons.Default.Person, contentDescription = "Profile Picture", modifier = Modifier.size(28.dp))
                 }
-            )
+            }
         }
     }
-
 }
