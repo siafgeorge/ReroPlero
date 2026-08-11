@@ -60,6 +60,7 @@ class ReceiptRepoImpl @Inject constructor(
         var lineNumber = 0
         var lineNet = 0.0
         var lineVat = 0.0
+        var lineDesc = ""
 
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
             when (parser.eventType) {
@@ -68,6 +69,7 @@ class ReceiptRepoImpl @Inject constructor(
                     if (tag == DETAIL) {
                         inDetail = true
                         lineNumber = 0
+                        lineDesc = ""
                         lineNet = 0.0
                         lineVat = 0.0
                     }
@@ -76,7 +78,7 @@ class ReceiptRepoImpl @Inject constructor(
                 XmlPullParser.END_TAG -> {
                     if (parser.name == DETAIL) {
                         inDetail = false
-                        lines += ReceiptLine(lineNumber, round2(lineNet + lineVat))
+                        lines += ReceiptLine(lineNumber, round2(lineNet + lineVat), lineDesc)
                     }
                     tag = null
                 }
@@ -86,6 +88,7 @@ class ReceiptRepoImpl @Inject constructor(
                     if (text.isNotEmpty()) {
                         if (inDetail) when (tag) {
                             "lineNumber" -> lineNumber = text.toIntOrNull() ?: lineNumber
+                            "itemDescr" -> lineDesc = text
                             "netValue" -> lineNet = text.toDoubleOrNull() ?: lineNet
                             "vatAmount" -> lineVat = text.toDoubleOrNull() ?: lineVat
                         } else when (tag) {

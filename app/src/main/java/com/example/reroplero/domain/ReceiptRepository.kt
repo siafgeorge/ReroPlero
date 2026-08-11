@@ -3,7 +3,8 @@ package com.example.reroplero.domain
 /** One line of a receipt. [gross] is net + VAT, i.e. what was actually paid for it. */
 data class ReceiptLine(
     val number: Int,
-    val gross: Double
+    val gross: Double,
+    val description: String
 )
 
 data class ReceiptInfo(

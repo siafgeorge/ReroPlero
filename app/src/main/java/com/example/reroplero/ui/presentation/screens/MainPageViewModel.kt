@@ -224,23 +224,26 @@ class MainPageViewModel @Inject constructor(
                 .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             val category = context.getString(R.string.other)
 
-            // Amounts are already in EUR, so no conversion. If a provider ever
-            // returns no line detail, fall back to a single payment for the total.
-            val payments = if (info.lines.isNotEmpty()) {
-                info.lines.map { line ->
-                    newReceiptPayment(user, category, line.gross, timestamp, info.uid, line.number)
+            val euro = context.getString(R.string.euro)
+            val note = buildString {
+                info.lines.forEach { line ->
+                    appendLine("${line.description} -> $euro${"%.2f".format(line.gross)}")
                 }
-            } else {
-                listOf(newReceiptPayment(user, category, info.grossValue, timestamp, info.uid, null))
+                appendLine()
+                append("Total: $euro${"%.2f".format(info.grossValue)}")
             }
 
-            globStore.addPayments(payments)
+
+            globStore.addPayment(
+                newReceiptPayment(user, category, info.grossValue, timestamp, info.uid, note)
+            )
+
             val refreshed = globStore.getPayments(user)
             val total = userRepo.currentMoney(user) ?: 0.0
             _state.update {
                 it.withPayments(refreshed).copy(total = total, isScanningReceipt = false)
             }
-            _effects.send(MainEffect.ShowMessage("Added ${payments.size} payments"))
+            _effects.send(MainEffect.ShowMessage("Added receipt payment"))
             _effects.send(MainEffect.GoToList)
         } catch (_: IllegalArgumentException) {
             // A QR from an unsupported provider is a different problem from a
@@ -259,7 +262,7 @@ class MainPageViewModel @Inject constructor(
         cost: Double,
         timestamp: Long,
         receiptUid: String,
-        receiptLine: Int?
+        note: String
     ) = Payment(
         id = UUID.randomUUID().toString(),
         username = user,
@@ -267,7 +270,8 @@ class MainPageViewModel @Inject constructor(
         cost = cost,
         timestamp = timestamp,
         receiptUid = receiptUid,
-        receiptLine = receiptLine
+        receiptLine = 0,
+        note = note
     )
 
     private fun delete(payment: Payment){
