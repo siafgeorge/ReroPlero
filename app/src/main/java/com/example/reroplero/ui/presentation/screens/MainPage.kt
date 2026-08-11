@@ -32,10 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -44,11 +42,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
 import com.example.reroplero.ui.presentation.login.LoginPage
 import com.example.reroplero.ui.theme.ReroPleroTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
+@Serializable data object TabsKey : NavKey
+@Serializable data object SettingsKey : NavKey
 @AndroidEntryPoint
 class MainPage : ComponentActivity() {
     private val viewModel: MainPageViewModel by viewModels()
@@ -88,145 +93,147 @@ class MainPage : ComponentActivity() {
                     }
                 }
                 var lastBackPress by remember { mutableLongStateOf(0L) }
-                var showSettings by rememberSaveable { mutableStateOf(false) }
+                val backStack = rememberNavBackStack(TabsKey)
                 BackHandler {
-                    if (showSettings) {
-                        showSettings = false
+                    val now = System.currentTimeMillis()
+                    if (now - lastBackPress < 2000) {
+                        finish()
                     } else {
-                        val now = System.currentTimeMillis()
-                        if (now - lastBackPress < 2000) {
-                            finish()
-                        } else {
-                            lastBackPress = now
-                            Toast.makeText(
-                                this@MainPage,
-                                "Press back again to exit",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        lastBackPress = now
+                        Toast.makeText(
+                            this@MainPage,
+                            "Press back again to exit",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
-                if (showSettings){
-                    Settings(
-                        viewModel = viewModel,
-                        state = state,
-                        onBack = {showSettings = false},
-                        onSetLogoutDialog = {
-                            visible -> viewModel.onIntent(MainIntent.SetLogoutDialog(visible))},
-                        onLogout = { viewModel.onIntent(MainIntent.Logout) }
-                    )
-                }else{
-                    Scaffold(
-                        bottomBar = {
-                            Box(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                NavigationBar(
-                                    modifier = Modifier.align(Alignment.BottomCenter)
-                                ) {
-                                    Tab.entries.forEachIndexed { index, t ->
-                                        if (t == Tab.TRANSACTION) {
-                                            Spacer(Modifier.weight(1f))
-                                        } else {
-                                            NavigationBarItem(
-                                                selected = pagerState.currentPage == index,
-                                                onClick = {
-                                                    scope.launch {
-                                                        pagerState.animateScrollToPage(
-                                                            index
-                                                        )
-                                                    }
-                                                },
-                                                icon = { Icon(t.icon, contentDescription = t.label) },
-                                                label = { Text(t.label) },
+                NavDisplay(
+                    backStack = backStack,
+                    entryProvider = entryProvider {
+                        entry<SettingsKey> {
+                            Settings(
+                                viewModel = viewModel,
+                                state = state,
+                                onBack = { backStack.removeLastOrNull() },
+                                onSetLogoutDialog = { visible ->
+                                    viewModel.onIntent(MainIntent.SetLogoutDialog(visible))
+                                },
+                                onLogout = { viewModel.onIntent(MainIntent.Logout)}
+                            )
+                        }
+                        entry<TabsKey>{
+                            Scaffold(
+                                bottomBar = {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        NavigationBar(
+                                            modifier = Modifier.align(Alignment.BottomCenter)
+                                        ) {
+                                            Tab.entries.forEachIndexed { index, t ->
+                                                if (t == Tab.TRANSACTION) {
+                                                    Spacer(Modifier.weight(1f))
+                                                } else {
+                                                    NavigationBarItem(
+                                                        selected = pagerState.currentPage == index,
+                                                        onClick = {
+                                                            scope.launch {
+                                                                pagerState.animateScrollToPage(
+                                                                    index
+                                                                )
+                                                            }
+                                                        },
+                                                        icon = { Icon(t.icon, contentDescription = t.label) },
+                                                        label = { Text(t.label) },
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
+                                        FloatingActionButton(
+                                            onClick = {
+                                                state.editing = null
+                                                scope.launch {
+                                                    pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
+                                                }
+                                            },
+                                            shape = CircleShape,
+                                            containerColor = if (onNewPage) MaterialTheme.colorScheme.secondaryContainer
+                                            else MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = if (onNewPage) MaterialTheme.colorScheme.onSecondaryContainer
+                                            else MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.align(Alignment.TopCenter)
+                                                .size(64.dp)
+                                                .offset(y = (-24).dp)
+
+                                        ) {
+                                            Icon(
+                                                Tab.TRANSACTION.icon,
+                                                contentDescription = Tab.TRANSACTION.label,
+                                                modifier = Modifier.size(40.dp)
                                             )
                                         }
                                     }
                                 }
+                            ) { innerPadding ->
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.padding(innerPadding)
+                                ) { page ->
+                                    when (Tab.entries[page]) {
+                                        Tab.HOME -> Homescreen(
+                                            state = state,
+                                            username = state.username,
+                                            total = state.total,
+                                            onLogout = {
+                                                viewModel.onIntent(MainIntent.Logout)
+                                            },
+                                            onSetLogoutDialog = { visible ->
+                                                viewModel.onIntent(MainIntent.SetLogoutDialog(visible))
+                                            },
+                                            onOpenSettings = {
+                                                backStack.add(SettingsKey)
+                                            }
+                                        )
 
-                                val onNewPage = pagerState.currentPage == Tab.TRANSACTION.ordinal
-                                FloatingActionButton(
-                                    onClick = {
-                                        state.editing = null
-                                        scope.launch {
-                                            pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
-                                        }
-                                    },
-                                    shape = CircleShape,
-                                    containerColor = if (onNewPage) MaterialTheme.colorScheme.secondaryContainer
-                                    else MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = if (onNewPage) MaterialTheme.colorScheme.onSecondaryContainer
-                                    else MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.align(Alignment.TopCenter)
-                                        .size(64.dp)
-                                        .offset(y = (-24).dp)
+                                        Tab.ANALYTICS -> AnalyticsScreen(viewModel, state)
+                                        Tab.TRANSACTION -> NewtransScreen(
+                                            viewModel,
+                                            editing = state.editing,
+                                            onLeave = { state.editing = null },
+                                            state = state
+                                        )
 
-                                ) {
-                                    Icon(
-                                        Tab.TRANSACTION.icon,
-                                        contentDescription = Tab.TRANSACTION.label,
-                                        modifier = Modifier.size(40.dp)
-                                    )
+                                        Tab.TRANSLIST -> TransListScreen(
+                                            viewModel,
+                                            onEdit = { payment ->
+                                                state.editing = payment
+                                                scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
+                                            },
+                                            onFlingNext = {
+                                                scope.launch {
+                                                    pagerState.animateScrollToPage(Tab.CRYPTO.ordinal)
+                                                }
+                                            },
+                                            onFlingPrev = {
+                                                scope.launch {
+                                                    pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
+                                                }
+                                            }
+                                        )
+
+                                        Tab.CRYPTO -> CryptoScreen(
+                                            state = cryptoState,
+                                            onRefresh = { cryptoViewModel.refresh() }
+                                        )
+                                    }
                                 }
                             }
                         }
-                    ) { innerPadding ->
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.padding(innerPadding)
-                        ) { page ->
-                            when (Tab.entries[page]) {
-                                Tab.HOME -> Homescreen(
-                                    state = state,
-                                    username = state.username,
-                                    total = state.total,
-                                    onLogout = {
-                                        viewModel.onIntent(MainIntent.Logout)
-                                    },
-                                    onSetLogoutDialog = { visible ->
-                                        viewModel.onIntent(MainIntent.SetLogoutDialog(visible))
-                                    },
-                                    onOpenSettings = {
-                                        showSettings = true
-                                    }
-                                )
-
-                                Tab.ANALYTICS -> AnalyticsScreen(viewModel, state)
-                                Tab.TRANSACTION -> NewtransScreen(
-                                    viewModel,
-                                    editing = state.editing,
-                                    onLeave = { state.editing = null },
-                                    state = state
-                                )
-
-                                Tab.TRANSLIST -> TransListScreen(
-                                    viewModel,
-                                    onEdit = { payment ->
-                                        state.editing = payment
-                                        scope.launch { pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal) }
-                                    },
-                                    onFlingNext = {
-                                        scope.launch {
-                                            pagerState.animateScrollToPage(Tab.CRYPTO.ordinal)
-                                        }
-                                    },
-                                    onFlingPrev = {
-                                        scope.launch {
-                                            pagerState.animateScrollToPage(Tab.TRANSACTION.ordinal)
-                                        }
-                                    }
-                                )
-
-                                Tab.CRYPTO -> CryptoScreen(
-                                    state = cryptoState,
-                                    onRefresh = { cryptoViewModel.refresh() }
-                                )
-                            }
-                        }
                     }
+                )
             }
-            }
-
         }
     }
 }
