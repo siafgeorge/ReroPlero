@@ -60,6 +60,10 @@ dependencies {
 //    retrofit
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
+    implementation(libs.retrofit.scalars)
+
+//    qr scanning
+    implementation(libs.play.services.code.scanner)
 
 //    lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)

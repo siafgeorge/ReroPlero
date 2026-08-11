@@ -7,7 +7,12 @@ interface PaymentRepository {
 
     suspend fun addPayment(payment: Payment) : Boolean
 
+    suspend fun addPayments(payments: List<Payment>)
+
     suspend fun getPayments(username: String): List<Payment>
+
+    /** The payment already recorded from this receipt, or null if it's new. */
+    suspend fun findByReceipt(username: String, receiptUid: String): Payment?
 
     suspend fun deletePayment(payment: Payment)
 

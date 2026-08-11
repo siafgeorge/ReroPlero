@@ -39,11 +39,19 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE, entity = Payment::class)
     suspend fun insertPayment(payment: Payment) : Long
 
+    // Room runs a multi-row @Insert in a single transaction, so importing a
+    // receipt either lands completely or not at all.
+    @Insert(onConflict = OnConflictStrategy.REPLACE, entity = Payment::class)
+    suspend fun insertPayments(payments: List<Payment>)
+
     @Query("SELECT * FROM payments WHERE username = :username ORDER BY timestamp DESC")
     suspend fun getPayments(username: String): List<Payment>
 
     @Query("SELECT SUM(cost) FROM payments WHERE username = :username")
     suspend fun totalFor(username: String): Double?
+
+    @Query("SELECT * FROM payments WHERE username = :username AND receiptUid = :receiptUid LIMIT 1")
+    suspend fun paymentByReceipt(username: String, receiptUid: String): Payment?
 
     @Delete
     suspend fun deletePayment(payment: Payment)

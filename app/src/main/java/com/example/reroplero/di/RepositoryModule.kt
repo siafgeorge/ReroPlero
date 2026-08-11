@@ -5,9 +5,11 @@ import com.example.reroplero.data.SessionRepoImpl
 import com.example.reroplero.data.UserRepoImpl
 import com.example.reroplero.data.remote.CryptoRepoImpl
 import com.example.reroplero.data.remote.CurrencyRepoImpl
+import com.example.reroplero.data.remote.ReceiptRepoImpl
 import com.example.reroplero.domain.CryptoRepository
 import com.example.reroplero.domain.CurrencyRepository
 import com.example.reroplero.domain.PaymentRepository
+import com.example.reroplero.domain.ReceiptRepository
 import com.example.reroplero.domain.SessionRepository
 import com.example.reroplero.domain.UserRepository
 import dagger.Binds
@@ -32,4 +34,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSessionStore(impl: SessionRepoImpl) : SessionRepository
+
+    @Binds
+    abstract fun bindReceiptRepository(impl: ReceiptRepoImpl) : ReceiptRepository
 }

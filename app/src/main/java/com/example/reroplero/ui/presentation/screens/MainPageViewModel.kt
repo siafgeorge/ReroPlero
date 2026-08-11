@@ -11,9 +11,11 @@ import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.reroplero.R
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
 import com.example.reroplero.domain.PaymentRepository
+import com.example.reroplero.domain.ReceiptRepository
 import com.example.reroplero.domain.SessionRepository
 import com.example.reroplero.domain.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,6 +45,7 @@ class MainPageViewModel @Inject constructor(
     private val session: SessionRepository,
     private val globStore: PaymentRepository,
     private val apiRepo: CurrencyRepository,
+    private val receiptRepo: ReceiptRepository,
     @ApplicationContext private val context: Context
     ): ViewModel() {
 
@@ -82,6 +85,7 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.NextAnalyticsYear -> nextAnalyticsYear()
             is MainIntent.PreviousAnalyticsYear -> previousAnalyticsYear()
             is MainIntent.SetProfilePicture -> setProfilePicture(intent.uri)
+            is MainIntent.ScanReceipt -> scanReceipt(intent.qr)
             is MainIntent.ChangePassword -> changePassword(intent.currentPassword, intent.newPassword)
         }
     }
@@ -161,7 +165,10 @@ class MainPageViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, username = user) }
         val payments = globStore.getPayments(user)
         val total = userRepo.currentMoney(user) ?: 0.0
-        val profilePicturePath = try { userRepo.getUser(user).profilePicturePath } catch (_: NoSuchFileException) { null }
+        // getUser throws NoSuchElementException, not NoSuchFileException — catching
+        // the wrong type let it escape and crash the app on every launch whenever
+        // the session named a user that was no longer in the database.
+        val profilePicturePath = try { userRepo.getUser(user).profilePicturePath } catch (_: NoSuchElementException) { null }
         _state.update { it.withPayments(payments).copy(total = total, isLoading = false, profilePicturePath = profilePicturePath) }
         refreshCurrencies()
     }
@@ -184,7 +191,11 @@ class MainPageViewModel @Inject constructor(
             username = user,
             category = intent.category,
             cost = eur,
-            timestamp = intent.timeMillis
+            timestamp = intent.timeMillis,
+            // Editing an imported payment must not drop its receipt link, or the
+            // receipt could be imported a second time.
+            receiptUid = _state.value.editing?.receiptUid,
+            receiptLine = _state.value.editing?.receiptLine
         )
         globStore.addPayment(payment)
         val payments = globStore.getPayments(user)
@@ -193,6 +204,70 @@ class MainPageViewModel @Inject constructor(
         _state.update { it.withPayments(payments).copy(total = total, editing = null, formVersion = it.formVersion + 1) }
         _effects.send(MainEffect.GoToList)
     }
+
+    private fun scanReceipt(qr: String) = viewModelScope.launch {
+        val user = _state.value.username.ifBlank { return@launch }
+        _state.update { it.copy(isScanningReceipt = true) }
+        try {
+            val info = receiptRepo.fetch(qr)
+            if (globStore.findByReceipt(user, info.uid) != null) {
+                _state.update { it.copy(isScanningReceipt = false) }
+                _effects.send(MainEffect.ShowError("That receipt is already saved"))
+                return@launch
+            }
+
+            // AADE publishes only the issue date — none of the provider's exports
+            // carry the time shown on the paper receipt — so imports land at
+            // midnight. Analytics groups by day, so the time doesn't affect it.
+            val timestamp = LocalDate.parse(info.issueDate)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val category = context.getString(R.string.other)
+
+            // Amounts are already in EUR, so no conversion. If a provider ever
+            // returns no line detail, fall back to a single payment for the total.
+            val payments = if (info.lines.isNotEmpty()) {
+                info.lines.map { line ->
+                    newReceiptPayment(user, category, line.gross, timestamp, info.uid, line.number)
+                }
+            } else {
+                listOf(newReceiptPayment(user, category, info.grossValue, timestamp, info.uid, null))
+            }
+
+            globStore.addPayments(payments)
+            val refreshed = globStore.getPayments(user)
+            val total = userRepo.currentMoney(user) ?: 0.0
+            _state.update {
+                it.withPayments(refreshed).copy(total = total, isScanningReceipt = false)
+            }
+            _effects.send(MainEffect.ShowMessage("Added ${payments.size} payments"))
+            _effects.send(MainEffect.GoToList)
+        } catch (_: IllegalArgumentException) {
+            // A QR from an unsupported provider is a different problem from a
+            // failed request, and the user can act on the difference.
+            _state.update { it.copy(isScanningReceipt = false) }
+            _effects.send(MainEffect.ShowError("Unrecognised receipt QR"))
+        } catch (_: Exception) {
+            _state.update { it.copy(isScanningReceipt = false) }
+            _effects.send(MainEffect.ShowError("Couldn't read the receipt"))
+        }
+    }
+
+    private fun newReceiptPayment(
+        user: String,
+        category: String,
+        cost: Double,
+        timestamp: Long,
+        receiptUid: String,
+        receiptLine: Int?
+    ) = Payment(
+        id = UUID.randomUUID().toString(),
+        username = user,
+        category = category,
+        cost = cost,
+        timestamp = timestamp,
+        receiptUid = receiptUid,
+        receiptLine = receiptLine
+    )
 
     private fun delete(payment: Payment){
         val previous = _state.value.payments

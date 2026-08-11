@@ -19,6 +19,7 @@
     <string name="transport">Transport</string>
     <string name="rent">Rent</string>
     <string name="fun_">Fun</string>
+    <string name="other">Other</string>
     <string name="timeFormat">%02d:%02d</string>
     <string name="dateFormat">dd MMM yyyy</string>
     <string name="notransyet">No transactions yet</string>

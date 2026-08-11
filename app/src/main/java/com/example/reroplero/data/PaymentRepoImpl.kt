@@ -15,9 +15,18 @@ class PaymentRepoImpl @Inject constructor(
         return@withContext dao.insertPayment(payment) != -1L
     }
 
+    override suspend fun addPayments(payments: List<Payment>) = withContext(Dispatchers.IO){
+        dao.insertPayments(payments)
+    }
+
     override suspend fun getPayments(username: String): List<Payment> = withContext(Dispatchers.IO){
         return@withContext dao.getPayments(username)
     }
+
+    override suspend fun findByReceipt(username: String, receiptUid: String): Payment? =
+        withContext(Dispatchers.IO){
+            return@withContext dao.paymentByReceipt(username, receiptUid)
+        }
 
 
 

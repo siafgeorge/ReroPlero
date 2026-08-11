@@ -11,6 +11,7 @@ import com.example.reroplero.data.local.AppDao
 import com.example.reroplero.data.local.AppDatabase
 import com.example.reroplero.data.remote.CoinGeckoApi
 import com.example.reroplero.data.remote.FrankfurterApi
+import com.example.reroplero.data.remote.ReceiptApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,6 +19,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -31,7 +33,11 @@ object DataModule {
                 context,
         AppDatabase::class.java,
                 context.getString(R.string.database)
-            ).addMigrations(AppDatabase.MIGRATION_1_2)
+            ).addMigrations(
+                AppDatabase.MIGRATION_1_2,
+                AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4
+            )
                 .build()
 
     @Provides
@@ -61,4 +67,15 @@ object DataModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(CoinGeckoApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideReceiptApi(): ReceiptApi =
+        Retrofit.Builder()
+            .baseUrl(ReceiptApi.BASE_URL)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .build()
+            .create(ReceiptApi::class.java)
+
+
 }

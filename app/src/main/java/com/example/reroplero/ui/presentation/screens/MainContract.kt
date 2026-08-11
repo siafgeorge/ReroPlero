@@ -31,7 +31,8 @@ data class MainUiState(
     val canGoToPreviousYear: Boolean = false,
     val canGoToNextYear: Boolean = false,
     val profilePicturePath: String? = null,
-    val profilePictureVersion : Int = 0
+    val profilePictureVersion : Int = 0,
+    val isScanningReceipt: Boolean = false
 )
 
 sealed interface MainIntent {
@@ -49,6 +50,7 @@ sealed interface MainIntent {
     data object Logout : MainIntent
     data object RefreshCurrencies : MainIntent
     data class SetProfilePicture(val uri: Uri) : MainIntent
+    data class ScanReceipt(val qr: String) : MainIntent
     data class SetLogoutDialog(val visible: Boolean) : MainIntent
     data object PreviousAnalyticsMonth : MainIntent
     data object NextAnalyticsMonth : MainIntent

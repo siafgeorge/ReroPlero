@@ -3,6 +3,7 @@ package com.example.reroplero.ui.presentation.screens
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import com.example.reroplero.R
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.domain.CurrencyRepository
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -92,7 +97,9 @@ fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Pa
                             )
                           )
                     },
-                    currencies = state.currencies
+                    currencies = state.currencies,
+                    isScanning = state.isScanningReceipt,
+                    onScan = { qr -> viewModel.onIntent(MainIntent.ScanReceipt(qr)) }
                 )
             }
         }
@@ -103,8 +110,16 @@ fun NewtransScreen(viewModel: MainPageViewModel, state: MainUiState, editing: Pa
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: String, timeMillis: Long, selectedCurrency: String) -> Unit, currencies: List<String>) {
-    val categories = listOf(stringResource(R.string.food), stringResource(R.string.transport), stringResource(R.string.rent), stringResource(R.string.fun_))
+fun PaymentForm(
+    editing: Payment? = null,
+    onSave: (category: String, cost: String, timeMillis: Long, selectedCurrency: String) -> Unit,
+    currencies: List<String>,
+    isScanning: Boolean = false,
+    onScan: (String) -> Unit = {}
+) {
+    // "Other" is included so an imported receipt line, which is saved with that
+    // category, still matches a chip when you open it for editing.
+    val categories = listOf(stringResource(R.string.food), stringResource(R.string.transport), stringResource(R.string.rent), stringResource(R.string.fun_), stringResource(R.string.other))
 
     var selectedCurrency by remember(editing) {
         mutableStateOf(CurrencyRepository.BASE_CURRENCY)
@@ -114,6 +129,18 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
     val focusManager = LocalFocusManager.current
     var selectedCategory by remember(editing) { mutableStateOf(editing?.category ?: categories.first()) }
     var cost by remember(editing) {  mutableStateOf(editing?.cost?.toString() ?: "") }
+
+    val context = LocalContext.current
+    val scanner = remember {
+        GmsBarcodeScanning.getClient(
+            context,
+            GmsBarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .enableAutoZoom()
+                .allowManualInput()
+                .build()
+        )
+    }
 
     // Date & time default to "now" and can be changed with the pickers below
     val now = remember(editing){
@@ -143,7 +170,13 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
         Spacer(Modifier.height(16.dp))
 
         Text("Category")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // FlowRow, not Row: a Row can't wrap, so on a narrow screen the last chip
+        // gets squeezed to a sliver with its label broken one character per line.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             categories.forEach { category ->
                 FilterChip(
                     selected = category == selectedCategory,
@@ -198,6 +231,18 @@ fun PaymentForm(editing: Payment? = null, onSave: (category: String, cost: Strin
                 }
             }
 
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = {
+                scanner.startScan()
+                    .addOnSuccessListener { barcode -> barcode.rawValue?.let(onScan) }
+            },
+            enabled = !isScanning
+        ) {
+            Text(if (isScanning) "Reading receipt…" else "Scan receipt")
         }
 
         Spacer(Modifier.height(16.dp))

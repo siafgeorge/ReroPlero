@@ -12,6 +12,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ReroPlero">
+
+        <!-- Downloads the scanner module ahead of first use instead of making
+             the user wait the first time they tap "Scan receipt". -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
         <activity android:name=".ui.presentation.MainActivity"
             android:exported="true">
             <intent-filter>
