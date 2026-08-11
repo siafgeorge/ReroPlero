@@ -2,8 +2,10 @@ package com.example.reroplero.ui.presentation.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
@@ -26,13 +28,17 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +52,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -53,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.reroplero.R
 import com.example.reroplero.data.local.models.Payment
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,6 +68,7 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onFlingNext: () -> Unit, onFlingPrev: () -> Unit) {
     val scope = rememberCoroutineScope()
@@ -74,6 +83,10 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
 
     var shouldDeleteDialog by remember{ mutableStateOf(false) }
     var curPayment by remember{mutableStateOf<Payment?>(null)}
+    var detailId by rememberSaveable {mutableStateOf<String?>(null)}
+    val detailPayment = remember(state.payments, detailId){
+        detailId?.let { id -> state.payments.find {it.id == id} }
+    }
     var selectedCategory by rememberSaveable {mutableStateOf<String?>(null)}
     val categories = remember(state.payments) { state.payments.map { it.category }.distinct().sorted() }
     var costCeiling = remember(state.payments) {
@@ -87,6 +100,8 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
             (selectedCategory == null || payment.category == selectedCategory) && payment.cost >= minCost && payment.cost <= maxCost
         }
     }
+
+    val focusManager = LocalFocusManager.current
 
     Column(modifier = Modifier.fillMaxSize()){
         LazyRow(
@@ -151,10 +166,60 @@ fun TransListScreen(viewModel: MainPageViewModel, onEdit: (Payment) -> Unit, onF
                         curPayment = payment
                     },
                     onFlingNext = onFlingNext,
-                    onFlingPrev = onFlingPrev
+                    onFlingPrev = onFlingPrev,
+                    onTap = {
+                        detailId = payment.id
+                    }
                 )
             }
         }
+    }
+
+    detailPayment?.let { payment ->
+        ModalBottomSheet(onDismissRequest = { detailId = null }) {
+            var noteText by remember(payment.id) { mutableStateOf(payment.note ?: "")}
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(16.dp)
+                    .pointerInput(Unit){
+                        detectTapGestures(onTap = { focusManager.clearFocus() })
+                    }
+            ){
+                Text(payment.category, style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "${stringResource(R.string.euro)}%.2f".format(payment.cost),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    SimpleDateFormat(stringResource(R.string.payDayformat), Locale.getDefault())
+                        .format(Date(payment.timestamp)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(24.dp))
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it},
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+                Spacer(Modifier.height(32.dp))
+            }
+
+            LaunchedEffect(noteText) {
+                if (noteText != (payment.note ?: "")) {
+                    delay(500)
+                    viewModel.onIntent(MainIntent.UpdateNote(payment.id, noteText))
+                }
+            }
+
+
+        }
+
     }
 
     if (shouldDeleteDialog){
@@ -220,7 +285,7 @@ fun PaymentCard(payment: Payment){
 }
 
 @Composable
-fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit, onFlingNext: () -> Unit, onFlingPrev: () -> Unit ) {
+fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> Unit, onFlingNext: () -> Unit, onFlingPrev: () -> Unit, onTap: () -> Unit ) {
     val scope = rememberCoroutineScope()
     val offsetX = remember {Animatable(0f)}
 
@@ -247,6 +312,7 @@ fun SwipeablePaymentCard(payment: Payment, onDelete: () -> Unit, onEdit: () -> U
         }
         Box(
             modifier = Modifier
+                .clickable(onClick = onTap)
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(payment.id) {
                     val tracker = VelocityTracker()

@@ -87,6 +87,7 @@ class MainPageViewModel @Inject constructor(
             is MainIntent.SetProfilePicture -> setProfilePicture(intent.uri)
             is MainIntent.ScanReceipt -> scanReceipt(intent.qr)
             is MainIntent.ChangePassword -> changePassword(intent.currentPassword, intent.newPassword)
+            is MainIntent.UpdateNote -> updateNote(intent.id, intent.note)
         }
     }
 
@@ -376,6 +377,11 @@ class MainPageViewModel @Inject constructor(
         }
         connectivityManager.registerDefaultNetworkCallback(callback)
         awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
+    }
+    private fun updateNote(id: String, note: String) = viewModelScope.launch {
+        val user = _state.value.username.ifBlank { return@launch }
+        globStore.updateNote(id, note.ifBlank { null })
+        _state.update {it.withPayments(globStore.getPayments(user))}
     }
 }
 

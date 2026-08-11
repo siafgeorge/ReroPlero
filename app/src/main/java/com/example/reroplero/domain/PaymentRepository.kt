@@ -19,4 +19,6 @@ interface PaymentRepository {
     suspend fun deletePaymentID(id: String)
 
     suspend fun deleteAllPaymentsUser(user: String)
+
+    suspend fun updateNote(id: String, note: String?)
 }

@@ -64,4 +64,7 @@ interface AppDao {
 
     @Query("UPDATE users SET profilePicturePath = :path WHERE username = :username")
     suspend fun updateProfilePicture(username: String, path: String?)
+
+    @Query("UPDATE payments SET note = :note WHERE id = :id")
+    suspend fun updateNote(id: String, note: String?)
 }

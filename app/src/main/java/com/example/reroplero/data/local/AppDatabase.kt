@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.reroplero.data.local.models.Payment
 import com.example.reroplero.data.local.models.User
 
-@Database(entities = [User::class, Payment::class], version = 4)
+@Database(entities = [User::class, Payment::class], version = 5)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun dao() : AppDao
@@ -42,6 +42,12 @@ abstract class AppDatabase : RoomDatabase() {
                             "`index_payments_username_receiptUid_receiptLine` " +
                             "ON `payments` (`username`, `receiptUid`, `receiptLine`)"
                 )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4,5) {
+            override fun migrate(db: SupportSQLiteDatabase){
+                db.execSQL("ALTER TABLE payments ADD COLUMN note TEXT")
             }
         }
     }

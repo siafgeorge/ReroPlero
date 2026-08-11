@@ -28,6 +28,9 @@ class PaymentRepoImpl @Inject constructor(
             return@withContext dao.paymentByReceipt(username, receiptUid)
         }
 
+    override suspend fun updateNote(id: String, note: String?) = withContext(Dispatchers.IO) {
+        dao.updateNote(id, note)
+    }
 
 
     override suspend fun deletePayment(payment: Payment) = dao.deletePayment(payment)

@@ -21,8 +21,8 @@ data class Payment(
     val cost: Double,
     val timestamp: Long,
     val receiptUid: String? = null,
-    val receiptLine: Int? = null
-
+    val receiptLine: Int? = null,
+    val note: String? = null
 ){
     operator fun plus(other: Payment): Double {
         return this.cost + other.cost

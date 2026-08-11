@@ -56,6 +56,7 @@ sealed interface MainIntent {
     data object NextAnalyticsMonth : MainIntent
     data object PreviousAnalyticsYear : MainIntent
     data object NextAnalyticsYear : MainIntent
+    data class UpdateNote(val id: String, val note: String) : MainIntent
 }
 
 sealed interface MainEffect {
